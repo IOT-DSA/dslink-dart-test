@@ -1,21 +1,10 @@
-import 'package:test/test.dart';
-import 'package:dslink_dart_test/dslink_test_framework.dart';
 import 'package:dslink/requester.dart';
-import 'dart:io';
-import 'dart:convert';
-import 'dart:async';
+import 'package:dslink_dart_test/dslink_test_framework.dart';
+import 'package:test/test.dart';
 
-main() {
+void main() {
   TestRequester testRequester;
   Requester requester;
-
-  Future<Null> assertThatNoErrorHappened(
-      List<RequesterInvokeUpdate> updates) async {
-    for (final update in updates) {
-      var error = update.error;
-      expect(error, isNull);
-    }
-  }
 
   setUpAll(() async {
     testRequester = new TestRequester();

@@ -2,7 +2,6 @@ import 'package:test/test.dart';
 import 'package:dslink_dart_test/dslink_test_framework.dart';
 import 'package:dslink/requester.dart';
 import 'dart:io';
-import 'dart:convert';
 import 'dart:async';
 
 main() {
@@ -14,14 +13,6 @@ main() {
   Process etsdbProcess;
   final String dbPath = 'dbPath';
   final String fullDbDirectoryPath = '$etsdbPath/$dbPath';
-
-  Future<Null> assertThatNoErrorHappened(
-      List<RequesterInvokeUpdate> updates) async {
-    for (final update in updates) {
-      var error = update.error;
-      expect(error, isNull);
-    }
-  }
 
   Future purgeAndDeleteDatabase() async {
     final invokeResult =
@@ -61,16 +52,4 @@ main() {
     final directoryExists = dbDirectory.existsSync();
     expect(directoryExists, isTrue);
   });
-}
-
-void printProcessOutputs(Process etsdbProcess) {
-  final printOutputToConsole = (Stream<List<int>> data) async {
-    await for (final encoded in data) {
-      final decoded = UTF8.decode(encoded);
-      print(decoded);
-    }
-  };
-
-  printOutputToConsole(etsdbProcess.stdout);
-  printOutputToConsole(etsdbProcess.stderr);
 }

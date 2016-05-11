@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:dslink/dslink.dart';
 
+export 'src/utils.dart';
+
 class TestAction extends SimpleNode {
   TestAction(String path) : super(path);
 

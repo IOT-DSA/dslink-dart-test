@@ -5,102 +5,70 @@ import 'dart:io';
 import 'dart:convert';
 import 'dart:async';
 
-void main() {
-  TestResponder responder;
+main() {
   TestRequester testRequester;
   Requester requester;
-  Process etsdbProcess;
-  final String etsdbPath =
-      '/home/joel/apps/dglux/dglux-server/dslinks/dslink-java-etsdb-0.0.4-SNAPSHOT';
 
-  setUp(() async {
-    responder = new TestResponder();
-    await responder.startResponder();
+  Future<Null> assertThatNoErrorHappened(
+      List<RequesterInvokeUpdate> updates) async {
+    for (final update in updates) {
+      var error = update.error;
+      expect(error, isNull);
+    }
+  }
 
+  setUpAll(() async {
     testRequester = new TestRequester();
     requester = await testRequester.start();
-
-    etsdbProcess = await Process.start(
-        'bin/dslink-java-etsdb', ['-b', 'http://localhost:8080/conn'],
-        workingDirectory: etsdbPath);
-
-    sleep(new Duration(seconds: 1));
-
-    etsdbProcess.stdout.listen((List<int> data) {
-      final decoded = UTF8.decode(data);
-      print(decoded);
-    });
-
-    etsdbProcess.stderr.listen((List<int> data) {
-      final decoded = UTF8.decode(data);
-      print(decoded);
-    });
   });
 
-  tearDown(() async {
-    responder.stop();
+  tearDownAll(() async {
     testRequester.stop();
-    etsdbProcess.kill();
   });
 
-  test('string value is the one expected', () async {
-    final valueUpdate = await requester
-        .getNodeValue('/downstream/TestResponder/sampleStringValue');
+  group('SDK/Test Responder/Test Requester', () {
+    TestResponder responder;
 
-    expect(valueUpdate.value, 'sample text!');
-  }, skip: true);
-
-  group('action', () {
-    test('should have a failure without params', () async {
-      final invokeResult =
-          await requester.invoke('/downstream/TestResponder/testAction');
-
-      await for (final result in invokeResult) {
-        expect(result.updates[0], [false, 'failure']);
-      }
+    setUp(() async {
+      responder = new TestResponder();
+      await responder.startResponder();
     });
 
-    test('should have a success when good parameters input', () async {
-      final invokeResult = await requester
-          .invoke('/downstream/TestResponder/testAction', {'goodCall': true});
-
-      await for (final result in invokeResult) {
-        expect(result.updates[0], [true, 'success']);
-      }
-    });
-  }, skip: true);
-
-  group('etsdb', () {
-    final String dbPath = 'dbPath';
-    final String fullDbDirectoryPath = '$etsdbPath/$dbPath';
-
-    Future purgeAndDeleteDatabase() async {
-      final invokeResult =
-          await requester.invoke('/downstream/etsdb/$dbPath/dap');
-
-      await for (final result in invokeResult) {
-        expect(result.error, isNull);
-      }
-
-      expect(new Directory(fullDbDirectoryPath).existsSync(), isFalse);
-    }
-
-    tearDown(() async {
-      await purgeAndDeleteDatabase();
+    tearDown(() {
+      responder.stop();
     });
 
-    test('should create db file when invoking the action', () async {
-      final invokeResult = await requester
-          .invoke('/downstream/etsdb/addDb', {'Name': 'myDB', 'Path': dbPath});
+    test('string value is the one expected', () async {
+      final valueUpdate = await requester
+          .getNodeValue('/downstream/TestResponder/sampleStringValue');
 
-      await for (final result in invokeResult) {
-        expect(result.error, isNull);
-      }
+      expect(valueUpdate.value, 'sample text!');
+    });
 
-      final dbDirectory = new Directory(fullDbDirectoryPath);
+    group('action', () {
+      test('should have a failure without params', () async {
+        final invokeResult = await requester
+            .invoke('/downstream/TestResponder/testAction')
+            .toList();
 
-      var directoryExists = dbDirectory.existsSync();
-      expect(directoryExists, isTrue);
+        assertThatNoErrorHappened(invokeResult);
+
+        for (final result in invokeResult) {
+          expect(result.updates[0], [false, 'failure']);
+        }
+      });
+
+      test('should have a success when good parameters input', () async {
+        final invokeResult = await requester.invoke(
+            '/downstream/TestResponder/testAction',
+            {'goodCall': true}).toList();
+
+        assertThatNoErrorHappened(invokeResult);
+
+        for (final result in invokeResult) {
+          expect(result.updates[0], [true, 'success']);
+        }
+      });
     });
   });
 }

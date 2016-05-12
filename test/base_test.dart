@@ -36,25 +36,28 @@ void main() {
 
     group('action', () {
       test('should have a failure without params', () async {
-        final invokeResult = await requester
-            .invoke('/downstream/TestResponder/testAction')
-            .toList();
+        final invokeResult = requester
+            .invoke('/downstream/TestResponder/testAction');
 
-        assertThatNoErrorHappened(invokeResult);
+        final results = await invokeResult.toList();
 
-        for (final result in invokeResult) {
+        assertThatNoErrorHappened(results);
+
+        for (final result in results) {
           expect(result.updates[0], [false, 'failure']);
         }
       });
 
       test('should have a success when good parameters input', () async {
-        final invokeResult = await requester.invoke(
+        final invokeResult = requester.invoke(
             '/downstream/TestResponder/testAction',
-            {'goodCall': true}).toList();
+            {'goodCall': true});
 
-        assertThatNoErrorHappened(invokeResult);
+        final results = await invokeResult.toList();
 
-        for (final result in invokeResult) {
+        assertThatNoErrorHappened(results);
+
+        for (final result in results) {
           expect(result.updates[0], [true, 'success']);
         }
       });

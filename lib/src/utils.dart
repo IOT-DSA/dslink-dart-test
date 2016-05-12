@@ -8,6 +8,10 @@ Future<Null> assertThatNoErrorHappened(
     List<RequesterInvokeUpdate> updates) async {
   for (final update in updates) {
     var error = update.error;
+    if (error != null) {
+      print(error.detail);
+      print(error.getMessage());
+    }
     expect(error, isNull);
   }
 }

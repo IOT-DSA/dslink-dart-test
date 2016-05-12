@@ -79,8 +79,9 @@ class TestRequester {
     _linkProvider.connect();
 
     final requester = await _linkProvider.onRequesterReady;
+
     return requester;
   }
 
-  void stop() => _linkProvider.stop();
+  void stop() => _linkProvider.close();
 }

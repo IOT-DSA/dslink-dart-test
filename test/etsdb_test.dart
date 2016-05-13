@@ -40,8 +40,14 @@ void main() {
 
   tearDown(() async {
     etsdbProcess.kill();
-    testRequester.stop();
+
+    sleep(new Duration(seconds: 2));
     clearTestDirectory(temporaryDirectory);
+
+    final clearSysResult = requester.invoke('/sys/clearConns');
+    await clearSysResult.toList();
+
+    testRequester.stop();
   });
 
   Future createDatabase() async {

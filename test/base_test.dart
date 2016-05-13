@@ -36,8 +36,8 @@ void main() {
 
     group('action', () {
       test('should have a failure without params', () async {
-        final invokeResult = requester
-            .invoke('/downstream/TestResponder/testAction');
+        final invokeResult =
+            requester.invoke('/downstream/TestResponder/testAction');
 
         final results = await invokeResult.toList();
 
@@ -49,9 +49,8 @@ void main() {
       });
 
       test('should have a success when good parameters input', () async {
-        final invokeResult = requester.invoke(
-            '/downstream/TestResponder/testAction',
-            {'goodCall': true});
+        final invokeResult = requester
+            .invoke('/downstream/TestResponder/testAction', {'goodCall': true});
 
         final results = await invokeResult.toList();
 

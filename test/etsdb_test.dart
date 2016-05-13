@@ -1,50 +1,39 @@
-import 'package:test/test.dart';
-import 'package:dslink_dart_test/dslink_test_framework.dart';
-import 'package:dslink/requester.dart';
-import 'dart:io';
 import 'dart:async';
-import 'dart:convert';
+import 'dart:io';
 
-main() {
+import 'package:dslink/requester.dart';
+import 'package:dslink_dart_test/dslink_test_framework.dart';
+import 'package:test/test.dart';
+
+void main() {
   TestRequester testRequester;
   Requester requester;
-
-  final String physicalLinkPath =
-      '/home/joel/apps/dglux/dglux-server/dslinks/dslink-java-etsdb-0.0.4-SNAPSHOT';
   Process etsdbProcess;
+  Directory temporaryDirectory;
+
+  Directory getLinksDirectory() {
+    var path = '${Directory.current.path}/links';
+    return new Directory(path);
+  }
+
+  final String linkName = 'dslink-java-etsdb-0.0.5-SNAPSHOT';
+  final String distZipPath = "${getLinksDirectory().path}/$linkName.zip";
   final String linkPath = '/downstream/etsdb';
   final String dbPath = 'dbPath';
-  final String fullDbDirectoryPath = '$physicalLinkPath/$dbPath';
 
-  Future deleteAndPurgeDatabase([bool failOnError = true]) async {
-    String somePath = '$linkPath/$dbPath/dap';
-    final invokeResult = requester.invoke(somePath);
-
-    expect(new Directory(fullDbDirectoryPath).existsSync(), isFalse);
-
-    if (!failOnError) {
-      return;
-    }
-
-    final results = await invokeResult.toList();
-
-    assertThatNoErrorHappened(results);
-
-//    final nodesJsonFile = new File('$physicalLinkPath/nodes.json');
-//    final decodedFile = await UTF8.decodeStream(nodesJsonFile.openRead());
-//    final nodes = JSON.decode(decodedFile) as Map<String, dynamic>;
-
-//    expect(nodes.containsKey(dbPath), isFalse);
-  }
+  String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
 
   setUp(() async {
     testRequester = new TestRequester();
     requester = await testRequester.start();
+
+    temporaryDirectory = await createTempDirectoryFromDistZip(
+        distZipPath, getLinksDirectory(), linkName);
+
     etsdbProcess = await Process.start(
         'bin/dslink-java-etsdb', ['-b', 'http://localhost:8080/conn'],
-        workingDirectory: physicalLinkPath);
-
-    sleep(new Duration(seconds: 5));
+        workingDirectory: temporaryDirectory.path);
+    sleep(new Duration(seconds: 1));
 
     printProcessOutputs(etsdbProcess);
   });
@@ -52,26 +41,27 @@ main() {
   tearDown(() async {
     etsdbProcess.kill();
     testRequester.stop();
+    clearTestDirectory(temporaryDirectory);
   });
 
   Future createDatabase() async {
-    final invokeResult = requester
-        .invoke('$linkPath/addDb', {'Name': 'myDB', 'Path': dbPath});
+    final invokeResult =
+        requester.invoke('$linkPath/addDb', {'Name': 'myDB', 'Path': dbPath});
 
-    assertThatNoErrorHappened(await invokeResult.toList());
+    var updates = await invokeResult.toList();
+
+    assertThatNoErrorHappened(updates);
   }
 
   test('should create db file when invoking the action', () async {
-    await deleteAndPurgeDatabase(false);
     await createDatabase();
 
-    final dbDirectory = new Directory(fullDbDirectoryPath);
+    final dbDirectory = new Directory(fullDbDirectoryPath());
     final directoryExists = dbDirectory.existsSync();
     expect(directoryExists, isTrue);
   });
 
   test('create watch group should create child wg node', () async {
-    await deleteAndPurgeDatabase(false);
     await createDatabase();
     final watchGroupName = 'myWatchGroup';
     final invokeResult = await requester.invoke(
@@ -82,5 +72,5 @@ main() {
     final nodeValue = await requester
         .getNodeValue('$linkPath/$watchGroupName/\$\$$watchGroupName');
     expect(nodeValue.value, isTrue);
-  });
+  }, skip: true);
 }

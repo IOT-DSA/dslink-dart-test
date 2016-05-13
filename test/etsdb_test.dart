@@ -4,6 +4,7 @@ import 'dart:io';
 import 'package:dslink/requester.dart';
 import 'package:dslink_dart_test/dslink_test_framework.dart';
 import 'package:test/test.dart';
+import 'package:dslink/nodes.dart';
 
 void main() {
   TestRequester testRequester;
@@ -12,7 +13,7 @@ void main() {
   Directory temporaryDirectory;
 
   Directory getLinksDirectory() {
-    var path = '${Directory.current.path}/links';
+    final path = '${Directory.current.path}/links';
     return new Directory(path);
   }
 
@@ -20,6 +21,8 @@ void main() {
   final String distZipPath = "${getLinksDirectory().path}/$linkName.zip";
   final String linkPath = '/downstream/etsdb';
   final String dbPath = 'dbPath';
+  final String watchGroupName = 'myWatchGroup';
+  final String watchPath = '/sys/version';
 
   String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
 
@@ -33,7 +36,7 @@ void main() {
     etsdbProcess = await Process.start(
         'bin/dslink-java-etsdb', ['-b', 'http://localhost:8080/conn'],
         workingDirectory: temporaryDirectory.path);
-    sleep(new Duration(seconds: 1));
+    sleep(new Duration(seconds: 2));
 
     printProcessOutputs(etsdbProcess);
   });
@@ -50,11 +53,29 @@ void main() {
     testRequester.stop();
   });
 
+  Future<Null> createWatch(
+      String dbPath, String watchGroupName, String watchPath) async {
+    final invokeResult = requester.invoke(
+        '$linkPath/$dbPath/$watchGroupName/addWatchPath', {'Path': watchPath});
+
+    final results = await invokeResult.toList();
+
+    assertThatNoErrorHappened(results);
+  }
+
+  Future<Null> createWatchGroup(String watchGroupName) async {
+    final invokeResult = requester
+        .invoke('$linkPath/$dbPath/createWatchGroup', {'Name': watchGroupName});
+
+    final results = await invokeResult.toList();
+
+    assertThatNoErrorHappened(results);
+  }
   Future createDatabase() async {
     final invokeResult =
         requester.invoke('$linkPath/addDb', {'Name': 'myDB', 'Path': dbPath});
 
-    var updates = await invokeResult.toList();
+    final updates = await invokeResult.toList();
 
     assertThatNoErrorHappened(updates);
   }
@@ -67,21 +88,34 @@ void main() {
     expect(directoryExists, isTrue);
   });
 
-  test('create watch group should create child wg node', () async {
-    await createDatabase();
-    final watchGroupName = 'myWatchGroup';
-    await createWatchGroup(requester, linkPath, dbPath, watchGroupName);
+  group('with database', () {
+    setUp(() async {
+      await createDatabase();
+    });
 
-    final nodeValue =
-        await requester.getRemoteNode('$linkPath/$dbPath/$watchGroupName');
-    expect(nodeValue.configs[r'$$wg'], isTrue);
+    test('create watch group should create child watchgroup node', () async {
+      await createWatchGroup(watchGroupName);
+
+      final nodeValue =
+          await requester.getRemoteNode('$linkPath/$dbPath/$watchGroupName');
+
+      expect(nodeValue.configs[r'$$wg'], isTrue);
+    });
+
+    group('with watch group', () {
+      setUp(() async {
+        createWatchGroup(watchGroupName);
+      });
+
+      test('watches should be children of watch group', () async {
+        createWatch(dbPath, watchGroupName, watchPath);
+
+        final nodeValue =
+            await requester.getRemoteNode('$linkPath/$dbPath/$watchGroupName');
+
+        var encodedWatchPath = NodeNamer.createName(watchPath);
+        expect(nodeValue.children[encodedWatchPath], isNotNull);
+      });
+    });
   });
-}
-
-Future createWatchGroup(Requester requester, String linkPath, String dbPath,
-    String watchGroupName) async {
-  final invokeResult = requester
-      .invoke('$linkPath/$dbPath/createWatchGroup', {'Name': watchGroupName});
-  final results = await invokeResult.toList();
-  assertThatNoErrorHappened(results);
 }

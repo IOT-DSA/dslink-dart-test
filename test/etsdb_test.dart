@@ -116,6 +116,14 @@ void main() {
         var encodedWatchPath = NodeNamer.createName(watchPath);
         expect(nodeValue.children[encodedWatchPath], isNotNull);
       });
+
+      test('@@getHistory should be added to the watched path', () async {
+        createWatch(dbPath, watchGroupName, watchPath);
+
+        final nodeValue = await requester.getRemoteNode(watchPath);
+
+        expect(nodeValue.attributes['@@getHistory'], isNotNull);
+      });
     });
   });
 }

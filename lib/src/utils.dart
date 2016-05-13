@@ -68,7 +68,7 @@ Future<Directory> createTempDirectoryFromDistZip(
   List<int> bytes = new File(distZipPath).readAsBytesSync();
   Archive archive = new ZipDecoder().decodeBytes(bytes);
 
-  var temporaryDirectory = linksDirectory.createTempSync('-$linkName');
+  var temporaryDirectory = linksDirectory.createTempSync('$linkName-');
   await extractZipArchive(archive, temporaryDirectory.path, linkName);
   return temporaryDirectory;
 }

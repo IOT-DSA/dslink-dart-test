@@ -70,13 +70,18 @@ void main() {
   test('create watch group should create child wg node', () async {
     await createDatabase();
     final watchGroupName = 'myWatchGroup';
-    final invokeResult = await requester.invoke(
-        '$linkPath/createWatchGroup', {'Name': watchGroupName}).toList();
+    await createWatchGroup(requester, linkPath, dbPath, watchGroupName);
 
-    assertThatNoErrorHappened(invokeResult);
+    final nodeValue =
+        await requester.getRemoteNode('$linkPath/$dbPath/$watchGroupName');
+    expect(nodeValue.configs[r'$$wg'], isTrue);
+  });
+}
 
-    final nodeValue = await requester
-        .getNodeValue('$linkPath/$watchGroupName/\$\$$watchGroupName');
-    expect(nodeValue.value, isTrue);
-  }, skip: true);
+Future createWatchGroup(Requester requester, String linkPath, String dbPath,
+    String watchGroupName) async {
+  final invokeResult = requester
+      .invoke('$linkPath/$dbPath/createWatchGroup', {'Name': watchGroupName});
+  final results = await invokeResult.toList();
+  assertThatNoErrorHappened(results);
 }

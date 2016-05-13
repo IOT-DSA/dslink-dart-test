@@ -22,7 +22,7 @@ void main() {
   final String linkPath = '/downstream/etsdb';
   final String dbPath = 'dbPath';
   final String watchGroupName = 'myWatchGroup';
-  final String watchPath = '/sys/version';
+  final String watchedPath = '/sys/version';
 
   String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
 
@@ -71,6 +71,7 @@ void main() {
 
     assertThatNoErrorHappened(results);
   }
+
   Future createDatabase() async {
     final invokeResult =
         requester.invoke('$linkPath/addDb', {'Name': 'myDB', 'Path': dbPath});
@@ -104,25 +105,39 @@ void main() {
 
     group('with watch group', () {
       setUp(() async {
-        createWatchGroup(watchGroupName);
+        await createWatchGroup(watchGroupName);
       });
 
       test('watches should be children of watch group', () async {
-        createWatch(dbPath, watchGroupName, watchPath);
+        await createWatch(dbPath, watchGroupName, watchedPath);
 
         final nodeValue =
             await requester.getRemoteNode('$linkPath/$dbPath/$watchGroupName');
 
-        var encodedWatchPath = NodeNamer.createName(watchPath);
+        var encodedWatchPath = NodeNamer.createName(watchedPath);
         expect(nodeValue.children[encodedWatchPath], isNotNull);
       });
 
       test('@@getHistory should be added to the watched path', () async {
-        createWatch(dbPath, watchGroupName, watchPath);
+        await createWatch(dbPath, watchGroupName, watchedPath);
 
-        final nodeValue = await requester.getRemoteNode(watchPath);
+        final nodeValue = await requester.getRemoteNode(watchedPath);
 
         expect(nodeValue.attributes['@@getHistory'], isNotNull);
+      });
+
+      test('@@getHistory should be removed when deleting a watch', () async {
+        await createWatch(dbPath, watchGroupName, watchedPath);
+
+        final watchPath = '$linkPath/$dbPath/$watchGroupName/${NodeNamer.createName(watchedPath)}';
+        final invokeResult = requester.invoke('$watchPath/unsubPurge');
+        final results = await invokeResult.toList();
+
+        assertThatNoErrorHappened(results);
+
+        final nodeValue = await requester.getRemoteNode(watchedPath);
+
+        expect(nodeValue.attributes['@@getHistory'], isNull);
       });
     });
   });

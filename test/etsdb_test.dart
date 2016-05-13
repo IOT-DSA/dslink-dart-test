@@ -22,6 +22,7 @@ void main() {
   final String linkPath = '/downstream/etsdb';
   final String dbPath = 'dbPath';
   final String watchGroupName = 'myWatchGroup';
+  final String watchGroupPath = '$linkPath/$dbPath/$watchGroupName';
   final String watchedPath = '/sys/version';
 
   String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
@@ -81,7 +82,7 @@ void main() {
     assertThatNoErrorHappened(updates);
   }
 
-  test('should create db file when invoking the action', () async {
+  test('create watch should create db directory', () async {
     await createDatabase();
 
     final dbDirectory = new Directory(fullDbDirectoryPath());
@@ -97,8 +98,7 @@ void main() {
     test('create watch group should create child watchgroup node', () async {
       await createWatchGroup(watchGroupName);
 
-      final nodeValue =
-          await requester.getRemoteNode('$linkPath/$dbPath/$watchGroupName');
+      final nodeValue = await requester.getRemoteNode(watchGroupPath);
 
       expect(nodeValue.configs[r'$$wg'], isTrue);
     });
@@ -111,8 +111,7 @@ void main() {
       test('watches should be children of watch group', () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
 
-        final nodeValue =
-            await requester.getRemoteNode('$linkPath/$dbPath/$watchGroupName');
+        final nodeValue = await requester.getRemoteNode(watchGroupPath);
 
         var encodedWatchPath = NodeNamer.createName(watchedPath);
         expect(nodeValue.children[encodedWatchPath], isNotNull);
@@ -126,10 +125,12 @@ void main() {
         expect(nodeValue.attributes['@@getHistory'], isNotNull);
       });
 
-      test('@@getHistory should be removed when deleting a watch', () async {
+      test('@@getHistory should be removed when delete and purge a watch',
+          () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
 
-        final watchPath = '$linkPath/$dbPath/$watchGroupName/${NodeNamer.createName(watchedPath)}';
+        final watchPath =
+            '$watchGroupPath/${NodeNamer.createName(watchedPath)}';
         final invokeResult = requester.invoke('$watchPath/unsubPurge');
         final results = await invokeResult.toList();
 

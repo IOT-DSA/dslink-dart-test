@@ -4,5 +4,7 @@ description: A simple console application.
 dependencies:
   test: '>=0.12.13+1 <0.13.0'
   dslink:
-    git: git@github.com:IOT-DSA/sdk-dslink-dart.git
+    git: https://github.com/IOT-DSA/sdk-dslink-dart.git
+  dsbroker:
+    git: git@github.com:IOT-DSA/broker-dart.git
   archive: '>=1.0.20 <2.0.0'

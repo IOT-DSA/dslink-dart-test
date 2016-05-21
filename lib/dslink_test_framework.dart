@@ -51,7 +51,7 @@ class TestResponder {
 
   Future<Null> startResponder() async {
     _linkProvider =
-        new LinkProvider(['-b', 'http://localhost:8080/conn'], 'TestResponder',
+        new LinkProvider(['-b', 'http://localhost:8123/conn'], 'TestResponder',
             isRequester: false,
             isResponder: true,
             profiles: {
@@ -73,7 +73,7 @@ class TestRequester {
 
   Future<Requester> start() async {
     _linkProvider = new LinkProvider(
-        ['-b', 'http://localhost:8080/conn'], 'TestRequester',
+        ['-b', 'http://localhost:8123/conn'], 'TestRequester',
         isRequester: true, isResponder: false);
 
     _linkProvider.connect();

@@ -3,10 +3,12 @@ import 'dart:io';
 
 import 'package:dslink/requester.dart';
 import 'package:dslink_dart_test/dslink_test_framework.dart';
+import 'package:dslink_dart_test/test_broker.dart';
 import 'package:test/test.dart';
 import 'package:dslink/nodes.dart';
 
 void main() {
+  TestBroker testBroker;
   TestRequester testRequester;
   Requester requester;
   Process etsdbProcess;
@@ -28,6 +30,9 @@ void main() {
   String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
 
   setUp(() async {
+    testBroker = new TestBroker(8123, 8456);
+    await testBroker.start();
+
     testRequester = new TestRequester();
     requester = await testRequester.start();
 
@@ -35,7 +40,7 @@ void main() {
         distZipPath, getLinksDirectory(), linkName);
 
     etsdbProcess = await Process.start(
-        'bin/dslink-java-etsdb', ['-b', 'http://localhost:8080/conn'],
+        'bin/dslink-java-etsdb', ['-b', 'http://localhost:8123/conn'],
         workingDirectory: temporaryDirectory.path);
     sleep(new Duration(seconds: 2));
 
@@ -52,6 +57,7 @@ void main() {
     await clearSysResult.toList();
 
     testRequester.stop();
+    await testBroker.stop();
   });
 
   Future<Null> createWatch(

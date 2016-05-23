@@ -1,0 +1,2 @@
+const int TEST_BROKER_HTTP_PORT = 8123;
+const int TEST_BROKER_HTTPS_PORT = 8456;

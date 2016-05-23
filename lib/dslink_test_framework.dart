@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dslink/dslink.dart';
+import 'src/config.dart';
 
 export 'src/utils.dart';
 
@@ -51,7 +52,7 @@ class TestResponder {
 
   Future<Null> startResponder() async {
     _linkProvider =
-        new LinkProvider(['-b', 'http://localhost:8123/conn'], 'TestResponder',
+        new LinkProvider(['-b', 'http://localhost:${TEST_BROKER_HTTP_PORT}/conn'], 'TestResponder',
             isRequester: false,
             isResponder: true,
             profiles: {
@@ -73,7 +74,7 @@ class TestRequester {
 
   Future<Requester> start() async {
     _linkProvider = new LinkProvider(
-        ['-b', 'http://localhost:8123/conn'], 'TestRequester',
+        ['-b', 'http://localhost:${TEST_BROKER_HTTP_PORT}/conn'], 'TestRequester',
         isRequester: true, isResponder: false);
 
     _linkProvider.connect();

@@ -52,7 +52,7 @@ class TestResponder {
 
   Future<Null> startResponder() async {
     _linkProvider = new LinkProvider(
-        ['-b', 'http://localhost:${TEST_BROKER_HTTP_PORT}/conn'],
+        ['-b', 'http://localhost:${Config.httpPort}/conn'],
         'TestResponder',
         isRequester: false,
         isResponder: true,
@@ -75,7 +75,7 @@ class TestRequester {
   Future<Requester> start() async {
     _linkProvider = new LinkProvider([
       '-b',
-      'http://localhost:${TEST_BROKER_HTTP_PORT}/conn'
+      'http://localhost:${Config.httpPort}/conn'
     ], 'TestRequester', isRequester: true, isResponder: false);
 
     _linkProvider.connect();
@@ -86,10 +86,10 @@ class TestRequester {
   }
 
   Future<RequesterUpdate> setDataValue(String path, dynamic value) =>
-      _linkProvider.requester.set("/data/${path}", value);
+      _linkProvider.requester.set("/data/$path", value);
 
   Future<ValueUpdate> getDataValue(String path) =>
-      _linkProvider.requester.getNodeValue("/data/${path}");
+      _linkProvider.requester.getNodeValue("/data/$path");
 
   void stop() => _linkProvider.close();
 }

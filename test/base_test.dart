@@ -10,7 +10,7 @@ void main() {
   Requester requester;
 
   setUpAll(() async {
-    testBroker = new TestBroker(TEST_BROKER_HTTP_PORT, TEST_BROKER_HTTPS_PORT);
+    testBroker = new TestBroker();
     testBroker.start();
 
     testRequester = new TestRequester();

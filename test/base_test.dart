@@ -1,18 +1,25 @@
 import 'package:dslink/requester.dart';
+import 'package:dslink_dart_test/src/config.dart';
 import 'package:dslink_dart_test/dslink_test_framework.dart';
+import 'package:dslink_dart_test/test_broker.dart';
 import 'package:test/test.dart';
 
 void main() {
   TestRequester testRequester;
+  TestBroker testBroker;
   Requester requester;
 
   setUpAll(() async {
+    testBroker = new TestBroker();
+    testBroker.start();
+
     testRequester = new TestRequester();
     requester = await testRequester.start();
   });
 
   tearDownAll(() async {
     testRequester.stop();
+    testBroker.stop();
   });
 
   group('SDK/Test Responder/Test Requester', () {
@@ -32,6 +39,14 @@ void main() {
           .getNodeValue('/downstream/TestResponder/sampleStringValue');
 
       expect(valueUpdate.value, 'sample text!');
+    });
+
+    test('should have a success adding and removing a node', () async {
+      await testRequester.setDataValue("foo", "bar");
+
+      final valueUpdate = await testRequester.getDataValue("foo");
+
+      expect(valueUpdate.value, "bar");
     });
 
     group('action', () {

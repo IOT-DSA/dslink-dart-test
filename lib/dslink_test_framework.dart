@@ -1,5 +1,6 @@
 import 'dart:async';
 import 'package:dslink/dslink.dart';
+import 'src/config.dart';
 
 export 'src/utils.dart';
 
@@ -50,15 +51,15 @@ class TestResponder {
   LinkProvider _linkProvider;
 
   Future<Null> startResponder() async {
-    _linkProvider =
-        new LinkProvider(['-b', 'http://localhost:8080/conn'], 'TestResponder',
-            isRequester: false,
-            isResponder: true,
-            profiles: {
-              TestAction.isType: (String path) => new TestAction(path),
-              SampleStringValue.isType: (String path) =>
-                  new SampleStringValue(path)
-            });
+    _linkProvider = new LinkProvider(
+        ['-b', 'http://localhost:${Config.httpPort}/conn'],
+        'TestResponder',
+        isRequester: false,
+        isResponder: true,
+        profiles: {
+          TestAction.isType: (String path) => new TestAction(path),
+          SampleStringValue.isType: (String path) => new SampleStringValue(path)
+        });
 
     await _linkProvider.connect();
     _linkProvider.addNode('/testAction', TestAction.definition());
@@ -72,9 +73,10 @@ class TestRequester {
   LinkProvider _linkProvider;
 
   Future<Requester> start() async {
-    _linkProvider = new LinkProvider(
-        ['-b', 'http://localhost:8080/conn'], 'TestRequester',
-        isRequester: true, isResponder: false);
+    _linkProvider = new LinkProvider([
+      '-b',
+      'http://localhost:${Config.httpPort}/conn'
+    ], 'TestRequester', isRequester: true, isResponder: false);
 
     _linkProvider.connect();
 
@@ -82,6 +84,12 @@ class TestRequester {
 
     return requester;
   }
+
+  Future<RequesterUpdate> setDataValue(String path, dynamic value) =>
+      _linkProvider.requester.set("/data/$path", value);
+
+  Future<ValueUpdate> getDataValue(String path) =>
+      _linkProvider.requester.getNodeValue("/data/$path");
 
   void stop() => _linkProvider.close();
 }

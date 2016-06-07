@@ -3,10 +3,13 @@ import 'dart:io';
 
 import 'package:dslink/requester.dart';
 import 'package:dslink_dart_test/dslink_test_framework.dart';
+import 'package:dslink_dart_test/test_broker.dart';
 import 'package:test/test.dart';
 import 'package:dslink/nodes.dart';
+import 'package:dslink_dart_test/src/config.dart';
 
 void main() {
+  TestBroker testBroker;
   TestRequester testRequester;
   Requester requester;
   Process etsdbProcess;
@@ -20,14 +23,17 @@ void main() {
   final String linkName = 'dslink-java-etsdb-0.0.5-SNAPSHOT';
   final String distZipPath = "${getLinksDirectory().path}/$linkName.zip";
   final String linkPath = '/downstream/etsdb';
-  final String dbPath = 'dbPath';
+  final String dbPath = 'dbPath2';
   final String watchGroupName = 'myWatchGroup';
   final String watchGroupPath = '$linkPath/$dbPath/$watchGroupName';
-  final String watchedPath = '/sys/version';
+  final String watchedPath = '/data/foo';
 
   String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
 
   setUp(() async {
+    testBroker = new TestBroker();
+    await testBroker.start();
+
     testRequester = new TestRequester();
     requester = await testRequester.start();
 
@@ -35,9 +41,9 @@ void main() {
         distZipPath, getLinksDirectory(), linkName);
 
     etsdbProcess = await Process.start(
-        'bin/dslink-java-etsdb', ['-b', 'http://localhost:8080/conn'],
+        'bin/dslink-java-etsdb', ['-b', testBroker.brokerAddress],
         workingDirectory: temporaryDirectory.path);
-    sleep(new Duration(seconds: 2));
+    sleep(new Duration(seconds: 3));
 
     printProcessOutputs(etsdbProcess);
   });
@@ -45,13 +51,15 @@ void main() {
   tearDown(() async {
     etsdbProcess.kill();
 
-    sleep(new Duration(seconds: 2));
+    sleep(new Duration(seconds: 3));
     clearTestDirectory(temporaryDirectory);
 
     final clearSysResult = requester.invoke('/sys/clearConns');
     await clearSysResult.toList();
 
     testRequester.stop();
+
+    await testBroker.stop();
   });
 
   Future<Null> createWatch(
@@ -123,6 +131,90 @@ void main() {
         final nodeValue = await requester.getRemoteNode(watchedPath);
 
         expect(nodeValue.attributes['@@getHistory'], isNotNull);
+      });
+
+      test('@@getHistory should return 1 value as ALL_DATA', () async {
+        await createWatch(dbPath, watchGroupName, watchedPath);
+
+        await testRequester.setDataValue("foo", "bar");
+
+        final watchPath =
+            '$watchGroupPath/${NodeNamer.createName(watchedPath)}';
+
+        final invokeResult = requester.invoke('$watchPath/getHistory');
+        final results = await invokeResult.toList();
+
+        assertThatNoErrorHappened(results);
+
+        expect(results[1].updates[0][1], equals("bar"));
+      });
+
+      test("@@getHistory should return multiple values as INTERVAL", () async {
+        await createWatch(dbPath, watchGroupName, watchedPath);
+        await testRequester.setDataValue("foo", "bar");
+
+        final watchPath =
+            '$watchGroupPath/${NodeNamer.createName(watchedPath)}';
+        final editResult = requester.invoke('$watchGroupPath/edit', {
+          r"Logging Type": "Interval",
+          r"Interval": 1,
+          r"Buffer Flush Time": 1
+        });
+        final results = await editResult.toList();
+
+        sleep(new Duration(seconds: 5));
+
+        final getHistoryResult = requester.invoke('$watchPath/getHistory');
+        final history = await getHistoryResult.toList();
+
+        assertThatNoErrorHappened(results);
+        assertThatNoErrorHappened(history);
+        expect(history[1].updates.length, greaterThan(1));
+      });
+
+      test("@@getHistory interval values should be within threshold", () async {
+        var interval = 1;
+        await createWatch(dbPath, watchGroupName, watchedPath);
+        await testRequester.setDataValue("foo", "bar");
+
+        final watchPath =
+            '$watchGroupPath/${NodeNamer.createName(watchedPath)}';
+        final editResult = requester.invoke('$watchGroupPath/edit', {
+          r"Logging Type": "Interval",
+          r"Interval": interval,
+          r"Buffer Flush Time": interval
+        });
+        final results = await editResult.toList();
+
+        sleep(new Duration(seconds: 10));
+
+        final getHistoryResult = requester.invoke('$watchPath/getHistory');
+        final history = await getHistoryResult.toList();
+
+        var firstTime = DateTime.parse(history[1].updates.first[0]);
+
+        var highDifference = 0;
+        for (var update in history[1].updates) {
+          var rawDate = DateTime.parse(update[0]);
+          var difference = rawDate.difference(firstTime).inMilliseconds;
+
+          while (difference > 500) {
+            difference -= 1000;
+          }
+
+          if (difference.abs() > highDifference) {
+            highDifference = difference.abs();
+          }
+
+          print("Difference: " +
+              difference.toString() +
+              ", rawDate: " +
+              rawDate.toString());
+        }
+
+        assertThatNoErrorHappened(results);
+        assertThatNoErrorHappened(history);
+        expect(highDifference, lessThan(10));
       });
 
       test('@@getHistory should be removed when delete and purge a watch',

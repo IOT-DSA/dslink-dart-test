@@ -1,62 +1,45 @@
 import 'package:dsbroker/broker.dart';
 import 'package:dslink/dslink.dart';
 import 'package:dslink_dart_test/test_broker_node_provider.dart';
-import 'dart:convert';
 import 'dart:async';
 import 'dart:io';
 import 'src/config.dart';
 
 class TestBroker {
-  int httpPort;
-  int httpsPort;
-  TestBrokerNodeProvider broker;
+  TestBrokerNodeProvider nodeProvider;
   DsHttpServer server;
   BrokerDiscoveryClient discovery;
-  SecurityContext context = SecurityContext.defaultContext;
+  String brokerAddress;
 
-  TestBroker(this.httpPort, this.httpsPort);
+  TestBroker();
 
   Future<Null> start() async {
-    var https = false;
-    var config = JSON.decode(testBrokerConfig);
+    updateLogLevel(Config.logLevel);
+    nodeProvider =
+        new TestBrokerNodeProvider(downstreamName: Config.downstreamName);
 
-    dynamic getConfig(String key, [defaultValue]) {
-      if (!config.containsKey(key)) {
-        return defaultValue;
-      }
-      var value = config[key];
+    server = new DsHttpServer.start(Config.host,
+        httpPort: Config.httpPort,
+        httpsPort: Config.httpsPort,
+        nodeProvider: this.nodeProvider,
+        linkManager: this.nodeProvider,
+        sslContext: Config.securityContext);
 
-      if (value == null) {
-        return defaultValue;
-      }
+    var networkAddress = await _getNetworkAddress();
+    var scheme = Config.useSsl ? "https" : "http";
+    var port = Config.useSsl ? Config.httpsPort : Config.httpPort;
+    brokerAddress = Config.broadcast
+        ? Config.broadcastUrl
+        : "$scheme://$networkAddress:$port/conn";
 
-      return value;
-    }
+    if (Config.broadcast) {
+      print("Starting Broadcast of Broker at $brokerAddress");
 
-    updateLogLevel(getConfig("logLevel", "finest"));
-    var downstreamName = getConfig("downstreamName", "downstream");
-    broker = new TestBrokerNodeProvider(downstreamName: downstreamName);
-
-    server = new DsHttpServer.start(getConfig("host", "0.0.0.0"),
-        httpPort: this.httpPort,
-        httpsPort: this.httpsPort,
-        nodeProvider: this.broker,
-        linkManager: this.broker,
-        sslContext: this.context);
-
-    https = getConfig("httpsPort", -1) != -1;
-
-    if (getConfig("broadcast", false)) {
-      var addr = await getNetworkAddress();
-      var scheme = https ? "https" : "http";
-      var port = https ? getConfig("httpsPort") : getConfig("port");
-      var url = getConfig("broadcastUrl", "$scheme://$addr:$port/conn");
-      print("Starting Broadcast of Broker at $url");
       discovery = new BrokerDiscoveryClient();
       try {
         await discovery.init(true);
         discovery.requests.listen((BrokerDiscoverRequest request) {
-          request.reply(url);
+          request.reply(brokerAddress);
         });
       } catch (e) {
         print("Warning: Failed to start broker broadcast service."
@@ -64,29 +47,28 @@ class TestBroker {
       }
     }
 
-    await broker.loadAll();
+    await nodeProvider.loadAll();
 
-    if (getConfig("upstream") != null) {
-      var upstream = getConfig("upstream", {}) as Map<String, Map<String, dynamic>>;
+    var upstream = Config.upstream;
+    if (upstream != null) {
       for (var name in upstream.keys) {
-        var upNode = upstream[name];
-        var url = upNode["url"];
-        var ourName = upNode["name"];
-        var enabled = upNode["enabled"];
-        var group = upNode["group"];
-        broker.upstream
+        var upstreamNode = upstream[name];
+        var url = upstreamNode["url"];
+        var ourName = upstreamNode["name"];
+        var enabled = upstreamNode["enabled"];
+        var group = upstreamNode["group"];
+        nodeProvider.upstream
             .addUpstreamConnection(name, url, ourName, group, enabled);
       }
     }
 
-    broker.upstream.onUpdate = (Map<Object, Object> map) async {
-      config["upstream"] = map;
-      //saveConfig();
+    nodeProvider.upstream.onUpdate = (Map<Object, Object> map) async {
+      Config.upstream["upstream"] = map;
     };
 
-    broker.setConfigHandler = (String name, dynamic value) async {
-      config[name] = value;
-      //saveConfig();
+    nodeProvider.setConfigHandler =
+        (String name, Map<String, dynamic> value) async {
+      Config.upstream[name] = value;
     };
   }
 
@@ -99,40 +81,25 @@ class TestBroker {
     }
   }
 
-  Future<String> getNetworkAddress() async {
+  Future<String> _getNetworkAddress() async {
     List<NetworkInterface> interfaces = await NetworkInterface.list();
     if (interfaces == null || interfaces.isEmpty) {
-      throw new Exception("getNetworkAddress() has 0 NetworkInterfaces available");
-      return null;
+      throw new Exception(
+          "getNetworkAddress() has 0 NetworkInterfaces available");
     }
     NetworkInterface interface = interfaces.first;
     List<InternetAddress> addresses = interface.addresses
         .where((it) => !it.isLinkLocal && !it.isLoopback)
         .toList();
     if (addresses.isEmpty) {
-      throw new Exception("getNetworkAddress() has 0 InternetAddresses available");
-      return null;
+      throw new Exception(
+          "getNetworkAddress() has 0 InternetAddresses available");
     }
     return addresses.first.address;
   }
-
-  final String testBrokerConfig = const JsonEncoder.withIndent("  ").convert({
-    "host": "0.0.0.0",
-    "port": TEST_BROKER_HTTP_PORT,
-    "httpsPort": TEST_BROKER_HTTPS_PORT,
-    "downstreamName": "downstream",
-    "logLevel": "finest",
-    "quarantine": false,
-    "allowAllLinks": true,
-    "upstream": {},
-    "sslCertificatePath": "",
-    "sslKeyPath": "",
-    "sslCertificatePassword": "",
-    "sslKeyPassword": ""
-  });
 }
 
-main() async {
-  var broker = new TestBroker(TEST_BROKER_HTTP_PORT, TEST_BROKER_HTTPS_PORT);
+Future<Null> main() async {
+  var broker = new TestBroker();
   await broker.start();
 }

@@ -31,7 +31,7 @@ void main() {
   String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
 
   setUp(() async {
-    testBroker = new TestBroker(TEST_BROKER_HTTP_PORT, TEST_BROKER_HTTPS_PORT);
+    testBroker = new TestBroker();
     await testBroker.start();
 
     testRequester = new TestRequester();
@@ -40,10 +40,10 @@ void main() {
     temporaryDirectory = await createTempDirectoryFromDistZip(
         distZipPath, getLinksDirectory(), linkName);
 
-    etsdbProcess = await Process.start('bin/dslink-java-etsdb',
-        ['-b', 'http://localhost:${TEST_BROKER_HTTP_PORT}/conn'],
+    etsdbProcess = await Process.start(
+        'bin/dslink-java-etsdb', ['-b', testBroker.brokerAddress],
         workingDirectory: temporaryDirectory.path);
-    sleep(new Duration(seconds: 2));
+    sleep(new Duration(seconds: 3));
 
     printProcessOutputs(etsdbProcess);
   });
@@ -51,7 +51,7 @@ void main() {
   tearDown(() async {
     etsdbProcess.kill();
 
-    sleep(new Duration(seconds: 2));
+    sleep(new Duration(seconds: 3));
     clearTestDirectory(temporaryDirectory);
 
     final clearSysResult = requester.invoke('/sys/clearConns');
@@ -136,7 +136,7 @@ void main() {
       test('@@getHistory should return 1 value as ALL_DATA', () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
 
-        testRequester.setDataValue("foo", "bar");
+        await testRequester.setDataValue("foo", "bar");
 
         final watchPath =
             '$watchGroupPath/${NodeNamer.createName(watchedPath)}';
@@ -151,7 +151,7 @@ void main() {
 
       test("@@getHistory should return multiple values as INTERVAL", () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
-        testRequester.setDataValue("foo", "bar");
+        await testRequester.setDataValue("foo", "bar");
 
         final watchPath =
             '$watchGroupPath/${NodeNamer.createName(watchedPath)}';
@@ -175,7 +175,7 @@ void main() {
       test("@@getHistory interval values should be within threshold", () async {
         var interval = 1;
         await createWatch(dbPath, watchGroupName, watchedPath);
-        testRequester.setDataValue("foo", "bar");
+        await testRequester.setDataValue("foo", "bar");
 
         final watchPath =
             '$watchGroupPath/${NodeNamer.createName(watchedPath)}';

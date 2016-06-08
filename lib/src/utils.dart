@@ -57,9 +57,9 @@ Future extractZipArchive(
 String removeFileNamePathSegment(String fullPath) =>
     fullPath.replaceRange(fullPath.lastIndexOf('/'), fullPath.length, '');
 
-void clearTestDirectory(Directory directory) {
-  if (directory.existsSync()) {
-    directory.deleteSync(recursive: true);
+Future<Null> clearTestDirectory(Directory directory) async {
+  if (await directory.exists()) {
+    await directory.delete(recursive: true);
   }
 }
 

@@ -76,8 +76,8 @@ class TestBroker {
     await server.stop();
 
     Directory storageDir = new Directory("storage");
-    if (storageDir.existsSync()) {
-      storageDir.deleteSync(recursive: true);
+    if (await storageDir.exists()) {
+      await storageDir.delete(recursive: true);
     }
   }
 

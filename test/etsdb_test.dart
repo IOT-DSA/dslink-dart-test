@@ -6,7 +6,6 @@ import 'package:dslink_dart_test/dslink_test_framework.dart';
 import 'package:dslink_dart_test/test_broker.dart';
 import 'package:test/test.dart';
 import 'package:dslink/nodes.dart';
-import 'package:dslink_dart_test/src/config.dart';
 
 void main() {
   TestBroker testBroker;
@@ -20,7 +19,7 @@ void main() {
     return new Directory(path);
   }
 
-  final String linkName = 'dslink-java-etsdb-0.0.5-SNAPSHOT';
+  final String linkName = 'dslink-java-etsdb-0.16.0-SNAPSHOT';
   final String distZipPath = "${getLinksDirectory().path}/$linkName.zip";
   final String linkPath = '/downstream/etsdb';
   final String dbPath = 'dbPath2';
@@ -43,7 +42,7 @@ void main() {
     etsdbProcess = await Process.start(
         'bin/dslink-java-etsdb', ['-b', testBroker.brokerAddress],
         workingDirectory: temporaryDirectory.path);
-    sleep(new Duration(seconds: 3));
+    await new Future.delayed(const Duration(seconds: 2));
 
     printProcessOutputs(etsdbProcess);
   });
@@ -51,14 +50,13 @@ void main() {
   tearDown(() async {
     etsdbProcess.kill();
 
-    sleep(new Duration(seconds: 3));
-    clearTestDirectory(temporaryDirectory);
+    await new Future.delayed(const Duration(seconds: 3));
+    await clearTestDirectory(temporaryDirectory);
 
     final clearSysResult = requester.invoke('/sys/clearConns');
     await clearSysResult.toList();
 
     testRequester.stop();
-
     await testBroker.stop();
   });
 
@@ -94,9 +92,9 @@ void main() {
     await createDatabase();
 
     final dbDirectory = new Directory(fullDbDirectoryPath());
-    final directoryExists = dbDirectory.existsSync();
+    final directoryExists = await dbDirectory.exists();
     expect(directoryExists, isTrue);
-  });
+  }, skip: false);
 
   group('with database', () {
     setUp(() async {
@@ -109,7 +107,7 @@ void main() {
       final nodeValue = await requester.getRemoteNode(watchGroupPath);
 
       expect(nodeValue.configs[r'$$wg'], isTrue);
-    });
+    }, skip: false);
 
     group('with watch group', () {
       setUp(() async {
@@ -123,7 +121,7 @@ void main() {
 
         var encodedWatchPath = NodeNamer.createName(watchedPath);
         expect(nodeValue.children[encodedWatchPath], isNotNull);
-      });
+      }, skip: false);
 
       test('@@getHistory should be added to the watched path', () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
@@ -131,7 +129,7 @@ void main() {
         final nodeValue = await requester.getRemoteNode(watchedPath);
 
         expect(nodeValue.attributes['@@getHistory'], isNotNull);
-      });
+      }, skip: false);
 
       test('@@getHistory should return 1 value as ALL_DATA', () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
@@ -146,31 +144,34 @@ void main() {
 
         assertThatNoErrorHappened(results);
 
-        expect(results[1].updates[0][1], equals("bar"));
-      });
+        var updates =
+            results.firstWhere((RequesterInvokeUpdate u) => u.updates != null);
+        expect(updates.updates[0][1], equals("bar"));
+      }, skip: false);
 
       test("@@getHistory should return multiple values as INTERVAL", () async {
-        await createWatch(dbPath, watchGroupName, watchedPath);
         await testRequester.setDataValue("foo", "bar");
+        await createWatch(dbPath, watchGroupName, watchedPath);
+        await testRequester.setDataValue("foo", "bar2");
 
         final watchPath =
             '$watchGroupPath/${NodeNamer.createName(watchedPath)}';
-        final editResult = requester.invoke('$watchGroupPath/edit', {
-          r"Logging Type": "Interval",
-          r"Interval": 1,
-          r"Buffer Flush Time": 1
+        final editWatchGroup = requester.invoke('$watchGroupPath/edit', {
+          "Logging Type": "Interval",
+          "Interval": 1,
+          "Buffer Flush Time": 1
         });
-        final results = await editResult.toList();
+        final editWatchGroupResults = await editWatchGroup.toList();
 
-        sleep(new Duration(seconds: 5));
+        await new Future.delayed(const Duration(seconds: 5));
 
-        final getHistoryResult = requester.invoke('$watchPath/getHistory');
-        final history = await getHistoryResult.toList();
+        final getHistory = requester.invoke('$watchPath/getHistory');
+        final getHistoryResults = await getHistory.toList();
 
-        assertThatNoErrorHappened(results);
-        assertThatNoErrorHappened(history);
-        expect(history[1].updates.length, greaterThan(1));
-      });
+        assertThatNoErrorHappened(editWatchGroupResults);
+        assertThatNoErrorHappened(getHistoryResults);
+        expect(getHistoryResults[1].updates.length, greaterThan(1));
+      }, skip: false);
 
       test("@@getHistory interval values should be within threshold", () async {
         var interval = 1;
@@ -186,7 +187,7 @@ void main() {
         });
         final results = await editResult.toList();
 
-        sleep(new Duration(seconds: 10));
+        await new Future.delayed(const Duration(seconds: 10));
 
         final getHistoryResult = requester.invoke('$watchPath/getHistory');
         final history = await getHistoryResult.toList();
@@ -215,7 +216,7 @@ void main() {
         assertThatNoErrorHappened(results);
         assertThatNoErrorHappened(history);
         expect(highDifference, lessThan(10));
-      });
+      }, skip: false);
 
       test('@@getHistory should be removed when delete and purge a watch',
           () async {
@@ -231,7 +232,7 @@ void main() {
         final nodeValue = await requester.getRemoteNode(watchedPath);
 
         expect(nodeValue.attributes['@@getHistory'], isNull);
-      });
+      }, skip: false);
     });
   });
 }

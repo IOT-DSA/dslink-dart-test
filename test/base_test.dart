@@ -11,7 +11,7 @@ void main() {
 
   setUpAll(() async {
     testBroker = new TestBroker();
-    testBroker.start();
+    await testBroker.start();
 
     testRequester = new TestRequester();
     requester = await testRequester.start();
@@ -19,7 +19,7 @@ void main() {
 
   tearDownAll(() async {
     testRequester.stop();
-    testBroker.stop();
+    await testBroker.stop();
   });
 
   group('SDK/Test Responder/Test Requester', () {
@@ -30,8 +30,8 @@ void main() {
       await responder.startResponder();
     });
 
-    tearDown(() {
-      responder.stop();
+    tearDown(() async {
+      await responder.stop();
     });
 
     test('string value is the one expected', () async {

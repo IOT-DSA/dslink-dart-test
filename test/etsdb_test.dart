@@ -29,13 +29,17 @@ void main() {
 
   String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
 
-  setUp(() async {
-    testBroker = new TestBroker();
-    await testBroker.start();
-
+  Future<Null> startRequester() async {
     testRequester = new TestRequester();
     requester = await testRequester.start();
+  }
 
+  Future<Null> startBroker() async {
+    testBroker = new TestBroker();
+    await testBroker.start();
+  }
+
+  Future<Null> startLink() async {
     temporaryDirectory = await createTempDirectoryFromDistZip(
         distZipPath, getLinksDirectory(), linkName);
 
@@ -45,9 +49,9 @@ void main() {
     await new Future.delayed(const Duration(seconds: 2));
 
     printProcessOutputs(etsdbProcess);
-  });
+  }
 
-  tearDown(() async {
+  Future<Null> killLink() async {
     etsdbProcess.kill();
 
     await new Future.delayed(const Duration(seconds: 3));
@@ -55,9 +59,22 @@ void main() {
 
     final clearSysResult = requester.invoke('/sys/clearConns');
     await clearSysResult.toList();
+  }
 
+  Future<Null> killBroker() async {
     testRequester.stop();
     await testBroker.stop();
+  }
+
+  setUp(() async {
+    await startBroker();
+    await startRequester();
+    await startLink();
+  });
+
+  tearDown(() async {
+    await killLink();
+    await killBroker();
   });
 
   Future<Null> createWatch(

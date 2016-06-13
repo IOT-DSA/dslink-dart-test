@@ -118,6 +118,29 @@ void main() {
       await createDatabase();
     });
 
+    test("paths with dots don't work when restarting etsdb", () async {
+      final pathWithDot = 'a.b';
+      await testRequester.setDataValue(pathWithDot, 12);
+
+      await createWatchGroup(watchGroupName);
+      await createWatch(dbPath, watchGroupName, pathWithDot);
+
+      await testRequester.setDataValue(pathWithDot, 13);
+
+      var update = await testRequester.getDataValue(pathWithDot);
+      expect(update.value, 13);
+
+      await killLink();
+
+      await startLink();
+      update = await testRequester.getDataValue(pathWithDot);
+      expect(update.value, 13);
+
+      await testRequester.setDataValue(pathWithDot, 14);
+      update = await testRequester.getDataValue(pathWithDot);
+      expect(update.value, 14);
+    }, skip: false);
+
     test('create watch group should create child watchgroup node', () async {
       await createWatchGroup(watchGroupName);
 

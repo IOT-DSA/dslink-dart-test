@@ -187,7 +187,9 @@ void main() {
 
         assertThatNoErrorHappened(editWatchGroupResults);
         assertThatNoErrorHappened(getHistoryResults);
-        expect(getHistoryResults[1].updates.length, greaterThan(1));
+        var getHistoryUpdates = getHistoryResults
+            .firstWhere((RequesterInvokeUpdate u) => u.updates != null);
+        expect(getHistoryUpdates.updates.length, greaterThan(1));
       }, skip: false);
 
       test("@@getHistory interval values should be within threshold", () async {

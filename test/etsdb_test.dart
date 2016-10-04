@@ -189,7 +189,7 @@ void main() {
       test('@@getHistory should return 1 value as ALL_DATA', () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
 
-        var newValue = new Random().nextInt(1000).toString();
+        var newValue = new Random.secure().nextInt(1000).toString();
         await requester.set(watchedPath, newValue);
 
         var updates = await getHistoryUpdates(watchPath());

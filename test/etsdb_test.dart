@@ -359,8 +359,72 @@ void main() {
         var watch = await requester.getRemoteNode(watchPath());
         expect(watch.get(typeAttribute), dataType);
       }, skip: false);
+
+      group('override type', () {
+        test('changes watch type with a provided one', () async {
+          final initialValue = 12;
+          final initialType = 'dynamic';
+          final typeOverride = 'map';
+
+          await requester.set(watchedPath, initialValue);
+          await createWatch(dbPath, watchGroupName, watchedPath);
+          var watch = await requester.getRemoteNode(watchPath());
+          var watchType = watch.get(typeAttribute);
+          expect(watchType, initialType);
+
+          await overrideWatchType(requester, watchPath, typeOverride);
+
+          watch = await requester.getRemoteNode(watchPath());
+          watchType = watch.get(typeAttribute);
+          expect(watchType, typeOverride);
+        }, skip: false);
+
+        test('keeps type the same when typename is null', () async {
+          final initialValue = 12;
+          final initialType = 'dynamic';
+          final typeOverride = null;
+
+          await requester.set(watchedPath, initialValue);
+          await createWatch(dbPath, watchGroupName, watchedPath);
+          var watch = await requester.getRemoteNode(watchPath());
+          var watchType = watch.get(typeAttribute);
+          expect(watchType, initialType);
+
+          await overrideWatchType(requester, watchPath, typeOverride);
+
+          watch = await requester.getRemoteNode(watchPath());
+          watchType = watch.get(typeAttribute);
+          expect(watchType, initialType);
+        }, skip: false);
+
+        test('keeps type the same when typeOverride is none', () async {
+          final initialValue = 12;
+          final initialType = 'dynamic';
+          final typeOverride = 'none';
+
+          await requester.set(watchedPath, initialValue);
+          await createWatch(dbPath, watchGroupName, watchedPath);
+          var watch = await requester.getRemoteNode(watchPath());
+          var watchType = watch.get(typeAttribute);
+          expect(watchType, initialType);
+
+          await overrideWatchType(requester, watchPath, typeOverride);
+
+          watch = await requester.getRemoteNode(watchPath());
+          watchType = watch.get(typeAttribute);
+          expect(watchType, initialType);
+        }, skip: false);
+      });
     });
   });
+}
+
+Future overrideWatchType(
+    Requester requester, String watchPath(), String newType) async {
+  var invokeResult = await requester
+      .invoke('${watchPath()}/overrideType', {'TypeName': newType}).toList();
+
+  assertThatNoErrorHappened(invokeResult);
 }
 
 void expectHistoryUpdatesToOnlyContain(

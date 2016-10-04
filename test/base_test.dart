@@ -1,5 +1,4 @@
 import 'package:dslink/requester.dart';
-import 'package:dslink_dart_test/src/config.dart';
 import 'package:dslink_dart_test/dslink_test_framework.dart';
 import 'package:dslink_dart_test/test_broker.dart';
 import 'package:test/test.dart';
@@ -30,8 +29,8 @@ void main() {
       await responder.startResponder();
     });
 
-    tearDown(() async {
-      await responder.stop();
+    tearDown(() {
+      responder.stop();
     });
 
     test('string value is the one expected', () async {
@@ -56,7 +55,7 @@ void main() {
 
         final results = await invokeResult.toList();
 
-        assertThatNoErrorHappened(results);
+        await assertThatNoErrorHappened(results);
 
         for (final result in results) {
           expect(result.updates[0], [false, 'failure']);
@@ -69,7 +68,7 @@ void main() {
 
         final results = await invokeResult.toList();
 
-        assertThatNoErrorHappened(results);
+        await assertThatNoErrorHappened(results);
 
         for (final result in results) {
           expect(result.updates[0], [true, 'success']);

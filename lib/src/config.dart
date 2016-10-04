@@ -13,7 +13,8 @@ class Config {
   static const bool broadcast = false;
   static const String broadcastUrl = '?';
 
-  static const int httpPort = 8123;
+//  static const int httpPort = 8123;
+  static const int httpPort = 8080;
   static const int httpsPort = 8456;
 
   static const String downstreamName = 'downstream';

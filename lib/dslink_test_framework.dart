@@ -3,6 +3,7 @@ import 'package:dslink/dslink.dart';
 import 'src/config.dart';
 
 export 'src/utils.dart';
+export 'test_broker.dart';
 
 class TestAction extends SimpleNode {
   TestAction(String path) : super(path);
@@ -78,7 +79,7 @@ class TestRequester {
       'http://localhost:${Config.httpPort}/conn'
     ], 'TestRequester', isRequester: true, isResponder: false);
 
-    _linkProvider.connect();
+    await _linkProvider.connect();
 
     final requester = await _linkProvider.onRequesterReady;
 

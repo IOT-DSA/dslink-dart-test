@@ -55,7 +55,7 @@ void main() {
 
         final results = await invokeResult.toList();
 
-        await assertThatNoErrorHappened(results);
+        assertThatNoErrorHappened(results);
 
         for (final result in results) {
           expect(result.updates[0], [false, 'failure']);
@@ -68,7 +68,7 @@ void main() {
 
         final results = await invokeResult.toList();
 
-        await assertThatNoErrorHappened(results);
+        assertThatNoErrorHappened(results);
 
         for (final result in results) {
           expect(result.updates[0], [true, 'success']);

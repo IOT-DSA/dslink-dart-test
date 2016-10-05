@@ -14,6 +14,8 @@ class TestBroker {
   TestBroker();
 
   Future<Null> start() async {
+    await removeStorageFiles();
+
     updateLogLevel(Config.logLevel);
     nodeProvider =
         new TestBrokerNodeProvider(downstreamName: Config.downstreamName);
@@ -75,6 +77,10 @@ class TestBroker {
   Future<Null> stop() async {
     await server.stop();
 
+    await removeStorageFiles();
+  }
+
+  Future<Null> removeStorageFiles() async {
     Directory storageDir = new Directory("storage");
     if (await storageDir.exists()) {
       await storageDir.delete(recursive: true);

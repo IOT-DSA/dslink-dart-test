@@ -1,3 +1,4 @@
+import 'dart:math';
 import 'package:dslink/dslink.dart';
 import 'package:test/test.dart';
 import 'dart:async';
@@ -5,8 +6,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:archive/archive.dart';
 
-Future<Null> assertThatNoErrorHappened(
-    List<RequesterInvokeUpdate> updates) async {
+void assertThatNoErrorHappened(List<RequesterInvokeUpdate> updates) {
   for (final update in updates) {
     var error = update.error;
     if (error != null) {
@@ -71,4 +71,9 @@ Future<Directory> createTempDirectoryFromDistZip(
   var temporaryDirectory = linksDirectory.createTempSync('$linkName-');
   await extractZipArchive(archive, temporaryDirectory.path, linkName);
   return temporaryDirectory;
+}
+
+String get randomString {
+  var rng = new Random.secure();
+  return new List.generate(10, (_) => rng.nextInt(9)).join();
 }

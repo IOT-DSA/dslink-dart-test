@@ -124,7 +124,7 @@ Future replaceSdkJars(Directory sdkDirectory, Directory linkDirectory) async {
 Future<Null> runTestsForSdkPullRequest() async {
   var branchName = getBranchName();
 
-  await repackageEtsdb(sdkBranchName: branchName);
+//  await repackageEtsdb(sdkBranchName: branchName);
 
   new PubApp.local('test').run([]);
 }

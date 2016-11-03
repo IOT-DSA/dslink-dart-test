@@ -23,7 +23,7 @@ void main() {
   final String linkName = 'dslink-java-etsdb-0.16.0-SNAPSHOT';
   final String distZipPath = "${getLinksDirectory().path}/$linkName.zip";
   final String linkPath = '/downstream/etsdb';
-  final String dbPath = 'dbPath2';
+  final String dbPath = 'dbPath';
   final String watchGroupName = 'myWatchGroup';
   final String watchGroupPath = '$linkPath/$dbPath/$watchGroupName';
   String watchedPath = '';
@@ -182,8 +182,25 @@ void main() {
         var getHistoryResult = requester.invoke('$watchPath/getHistory');
         var history = await getHistoryResult.toList();
         assertThatNoErrorHappened(history);
-        return history
-            .firstWhere((RequesterInvokeUpdate u) => u.updates != null);
+
+        if (history.isEmpty ||
+            history.firstWhere((RequesterInvokeUpdate u) => u.updates != null,
+                    orElse: () => null) ==
+                null) {
+          print('************** HISTORY IS NULL, BUT: ');
+          for (var h in history) {
+            print(h.updates);
+            print(h.streamStatus);
+            print(h.columns);
+            print(h.meta);
+            print(h.rows);
+            print(h);
+          }
+        }
+
+        return history.firstWhere(
+            (RequesterInvokeUpdate u) => u.updates != null,
+            orElse: () => null);
       }
 
       test('@@getHistory should return 1 value as ALL_DATA', () async {
@@ -266,8 +283,8 @@ void main() {
 
         assertThatNoErrorHappened(results);
         assertThatNoErrorHappened(history);
-        expect(highDifference, lessThan(10));
-      }, skip: false);
+        expect(highDifference, lessThan(5));
+      }, skip: true);
 
       test('@@getHistory should be removed when delete and purge a watch',
           () async {
@@ -285,7 +302,7 @@ void main() {
 
       test('logging should stop on child watches when deleting a watch group',
           () async {
-        final initialValue = 42;
+        final initialValue = new Random.secure().nextInt(100);
         final amountOfUpdates = 10;
 
         await requester.set(watchedPath, initialValue);
@@ -293,7 +310,7 @@ void main() {
         var historyUpdates = await getHistoryUpdates(watchPath());
         expectHistoryUpdatesToOnlyContain(historyUpdates, initialValue);
 
-        await unsubscribeWatchGroup(requester, watchPath);
+        await unsubscribeWatchGroup(requester, watchPath());
 
         for (int i = 1; i <= amountOfUpdates; ++i) {
           await requester.set(watchedPath, initialValue + i);
@@ -341,23 +358,6 @@ void main() {
 
         expect(watchedNodeType, expectedType);
         expect(watchNodeType, expectedType);
-      }, skip: false);
-
-      test(
-          'watch data type is set to given type when explicitly given even '
-          'though the next values do not respect the type', () async {
-        final initialValue = 'someValue';
-        final secondValue = 12;
-        final dataType = 'string';
-
-        await requester.set(watchedPath, initialValue);
-        await requester.set('$watchedPath/$typeAttribute', dataType);
-
-        await createWatch(dbPath, watchGroupName, watchedPath);
-        await requester.set(watchedPath, secondValue);
-
-        var watch = await requester.getRemoteNode(watchPath());
-        expect(watch.get(typeAttribute), dataType);
       }, skip: false);
 
       group('override type', () {
@@ -433,8 +433,8 @@ void expectHistoryUpdatesToOnlyContain(
   expect(historyUpdates.updates[0][1], initialValue);
 }
 
-Future unsubscribeWatchGroup(Requester requester, String watchPath()) async {
-  final invokeResult = requester.invoke('${watchPath()}/unsubscribe');
+Future unsubscribeWatchGroup(Requester requester, String watchPath) async {
+  final invokeResult = requester.invoke('$watchPath/unsubscribe');
   final results = await invokeResult.toList();
   assertThatNoErrorHappened(results);
 }

@@ -183,21 +183,6 @@ void main() {
         var history = await getHistoryResult.toList();
         assertThatNoErrorHappened(history);
 
-        if (history.isEmpty ||
-            history.firstWhere((RequesterInvokeUpdate u) => u.updates != null,
-                    orElse: () => null) ==
-                null) {
-          print('************** HISTORY IS NULL, BUT: ');
-          for (var h in history) {
-            print(h.updates);
-            print(h.streamStatus);
-            print(h.columns);
-            print(h.meta);
-            print(h.rows);
-            print(h);
-          }
-        }
-
         return history.firstWhere(
             (RequesterInvokeUpdate u) => u.updates != null,
             orElse: () => null);
@@ -209,38 +194,28 @@ void main() {
         var newValue = new Random.secure().nextInt(1000).toString();
         await requester.set(watchedPath, newValue);
 
+        await new Future.delayed(new Duration(milliseconds: 300));
         var updates = await getHistoryUpdates(watchPath());
 
         expect(updates.updates[0][1], newValue);
       }, skip: false);
 
       test("@@getHistory should return multiple values as INTERVAL", () async {
-        final loggingDurationInSeconds = 3;
+        final loggingDurationInSeconds = 5;
         final intervalInSeconds = 1;
         await requester.set(watchedPath, "bar");
+        await makeWatchGroupLogByInterval(
+            requester, watchGroupPath, intervalInSeconds);
         await createWatch(dbPath, watchGroupName, watchedPath);
 
-        final editWatchGroup = requester.invoke('$watchGroupPath/edit', {
-          "Logging Type": "Interval",
-          "Interval": intervalInSeconds,
-          "Buffer Flush Time": 1
-        });
-        final editWatchGroupResults = await editWatchGroup.toList();
-        assertThatNoErrorHappened(editWatchGroupResults);
-
-        var purgeResult =
-            await requester.invoke('${watchPath()}/purge').toList();
-        assertThatNoErrorHappened(purgeResult);
-
         await new Future.delayed(
-            new Duration(seconds: loggingDurationInSeconds));
+            new Duration(milliseconds: loggingDurationInSeconds * 1000 + 200));
 
         var result = await getHistoryUpdates(watchPath());
-        // etsdb polling starts at 0 second
         expect(
-            result.updates.length == loggingDurationInSeconds ||
-                result.updates.length == loggingDurationInSeconds + 1,
-            isTrue);
+            result.updates.length,
+            inInclusiveRange(
+                loggingDurationInSeconds, loggingDurationInSeconds + 1));
       }, skip: false);
 
       test("@@getHistory interval values should be within threshold", () async {
@@ -251,7 +226,7 @@ void main() {
         final editResult = requester.invoke('$watchGroupPath/edit', {
           r"Logging Type": "Interval",
           r"Interval": interval,
-          r"Buffer Flush Time": interval
+          r"Buffer Flush Time": 1
         });
         final results = await editResult.toList();
 
@@ -262,29 +237,19 @@ void main() {
 
         var firstTime = DateTime.parse(history[1].updates.first[0]);
 
-        var highDifference = 0;
-        for (var update in history[1].updates) {
+        var previousTime = firstTime;
+        for (var update in history[1].updates.skip(1)) {
           var rawDate = DateTime.parse(update[0]);
-          var difference = rawDate.difference(firstTime).inMilliseconds;
+          var difference = rawDate.difference(previousTime).inMilliseconds;
 
-          while (difference > 500) {
-            difference -= 1000;
-          }
+          expect(difference, lessThan(interval * 1000 + interval * 0.15));
 
-          if (difference.abs() > highDifference) {
-            highDifference = difference.abs();
-          }
-
-          print("Difference: " +
-              difference.toString() +
-              ", rawDate: " +
-              rawDate.toString());
+          previousTime = rawDate;
         }
 
         assertThatNoErrorHappened(results);
         assertThatNoErrorHappened(history);
-        expect(highDifference, lessThan(5));
-      }, skip: true);
+      }, skip: false);
 
       test('@@getHistory should be removed when delete and purge a watch',
           () async {
@@ -332,11 +297,10 @@ void main() {
         await requester.set(watchedPath, secondValue);
         await createWatch(dbPath, watchGroupName, watchedPath);
 
-        var watchedNode = await requester.getRemoteNode(watchedPath);
-        var watchedNodeType = watchedNode.get(typeAttribute);
-
-        var watchNode = await requester.getRemoteNode(watchPath());
-        var watchNodeType = watchNode.get(typeAttribute);
+        var watchedNodeType =
+            await getNodeType(requester, watchedPath, typeAttribute);
+        var watchNodeType =
+            await getNodeType(requester, watchPath(), typeAttribute);
 
         expect(watchedNodeType, 'dynamic');
         expect(watchNodeType, 'dynamic');
@@ -350,11 +314,29 @@ void main() {
         await requester.set('$watchedPath/$typeAttribute', expectedType);
         await createWatch(dbPath, watchGroupName, watchedPath);
 
-        var watchedNode = await requester.getRemoteNode(watchedPath);
-        var watchedNodeType = watchedNode.get(typeAttribute);
+        var watchedNodeType =
+            await getNodeType(requester, watchedPath, typeAttribute);
+        var watchNodeType =
+            await getNodeType(requester, watchPath(), typeAttribute);
 
-        var watchNode = await requester.getRemoteNode(watchPath());
-        var watchNodeType = watchNode.get(typeAttribute);
+        expect(watchedNodeType, expectedType);
+        expect(watchNodeType, expectedType);
+      }, skip: false);
+
+      test(
+          'watch data type is set to the type of the watched node even if '
+          'last value is not of that type', () async {
+        final initialValue = 12;
+        final expectedType = 'string';
+
+        await requester.set(watchedPath, initialValue);
+        await requester.set('$watchedPath/$typeAttribute', expectedType);
+        await createWatch(dbPath, watchGroupName, watchedPath);
+
+        final watchedNodeType =
+            await getNodeType(requester, watchedPath, typeAttribute);
+        final watchNodeType =
+            await getNodeType(requester, watchPath(), typeAttribute);
 
         expect(watchedNodeType, expectedType);
         expect(watchNodeType, expectedType);
@@ -417,6 +399,24 @@ void main() {
       });
     });
   });
+}
+
+Future<String> getNodeType(
+    Requester requester, String nodePath, String typeAttribute) async {
+  var node = await requester.getRemoteNode(nodePath);
+  var nodeType = node.get(typeAttribute);
+  return nodeType;
+}
+
+Future makeWatchGroupLogByInterval(
+    Requester requester, String watchGroupPath, int intervalInSeconds) async {
+  final editWatchGroup = requester.invoke('$watchGroupPath/edit', {
+    "Logging Type": "Interval",
+    "Interval": intervalInSeconds,
+    "Buffer Flush Time": 1
+  });
+  final editWatchGroupResults = await editWatchGroup.toList();
+  assertThatNoErrorHappened(editWatchGroupResults);
 }
 
 Future overrideWatchType(

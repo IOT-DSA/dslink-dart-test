@@ -22,8 +22,8 @@ Future<Directory> cloneGitRepository(String repositoryUrl,
   var cloneDirectory =
       await new Directory(projectPath).createTemp(directoryPrefix);
 
-  var process =
-      await Process.run('git', ['clone', repositoryUrl, cloneDirectory.path]);
+  var process = await Process.run(
+      'git', ['clone', '-b', branchName, repositoryUrl, cloneDirectory.path]);
 
   printProcessOutput(process);
 
@@ -124,14 +124,15 @@ Future replaceSdkJars(Directory sdkDirectory, Directory linkDirectory) async {
 Future<Null> runTestsForSdkPullRequest() async {
   var branchName = getBranchName();
 
-//  await repackageEtsdb(sdkBranchName: branchName);
+  await repackageEtsdb(sdkBranchName: branchName);
 
   new PubApp.local('test').run([]);
 }
 
 String getBranchName() {
-  var branchName =
-      Platform.environment['BRANCH_NAME']?.replaceAll('refs/heads/', '');
+  var branchName = Platform.environment['BRANCH_NAME']
+      ?.replaceAll('/refs/heads/', '')
+      ?.replaceAll('ref/heads/', '');
   if (branchName == null || branchName.isEmpty) {
     return 'master';
   }

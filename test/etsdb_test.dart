@@ -413,7 +413,7 @@ Future makeWatchGroupLogByInterval(
   final editWatchGroup = requester.invoke('$watchGroupPath/edit', {
     "Logging Type": "Interval",
     "Interval": intervalInSeconds,
-    "Buffer Flush Time": 1
+    "Buffer Flush Time": intervalInSeconds
   });
   final editWatchGroupResults = await editWatchGroup.toList();
   assertThatNoErrorHappened(editWatchGroupResults);

@@ -222,7 +222,7 @@ void main() {
         var interval = 1;
         await createWatch(dbPath, watchGroupName, watchedPath);
         await requester.set(watchedPath, "bar");
-        await makeWatchGroupLogByInterval(requester, watchedPath, interval);
+        await makeWatchGroupLogByInterval(requester, watchGroupPath, interval);
 
         await new Future.delayed(const Duration(seconds: 10));
 

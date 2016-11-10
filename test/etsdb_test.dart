@@ -343,14 +343,12 @@ void main() {
 
           await requester.set(watchedPath, initialValue);
           await createWatch(dbPath, watchGroupName, watchedPath);
-          var watch = await requester.getRemoteNode(watchPath());
-          var watchType = watch.get(typeAttribute);
+          var watchType = await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, initialType);
 
           await overrideWatchType(requester, watchPath, typeOverride);
 
-          watch = await requester.getRemoteNode(watchPath());
-          watchType = watch.get(typeAttribute);
+          watchType = await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, typeOverride);
         }, skip: false);
 

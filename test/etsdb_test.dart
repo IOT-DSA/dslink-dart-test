@@ -343,7 +343,8 @@ void main() {
 
           await requester.set(watchedPath, initialValue);
           await createWatch(dbPath, watchGroupName, watchedPath);
-          var watchType = await getNodeType(requester, watchPath(), typeAttribute);
+          var watchType =
+              await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, initialType);
 
           await overrideWatchType(requester, watchPath, typeOverride);

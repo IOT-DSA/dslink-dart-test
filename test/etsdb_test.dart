@@ -222,13 +222,7 @@ void main() {
         var interval = 1;
         await createWatch(dbPath, watchGroupName, watchedPath);
         await requester.set(watchedPath, "bar");
-
-        final editResult = requester.invoke('$watchGroupPath/edit', {
-          r"Logging Type": "Interval",
-          r"Interval": interval,
-          r"Buffer Flush Time": interval
-        });
-        final results = await editResult.toList();
+        await makeWatchGroupLogByInterval(requester, watchedPath, interval);
 
         await new Future.delayed(const Duration(seconds: 10));
 
@@ -247,7 +241,6 @@ void main() {
           previousTime = rawDate;
         }
 
-        assertThatNoErrorHappened(results);
         assertThatNoErrorHappened(history);
       }, skip: false);
 

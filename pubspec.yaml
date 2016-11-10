@@ -6,7 +6,7 @@ dependencies:
   dslink:
     git: https://github.com/IOT-DSA/sdk-dslink-dart.git
   dsbroker:
-    git: git@github.com:IOT-DSA/broker-dart.git
+    git: https://github.com/IOT-DSA/broker-dart.git
   archive: '>=1.0.20 <2.0.0'
   path: '>=1.4.0 <2.0.0'
 dev_dependencies:

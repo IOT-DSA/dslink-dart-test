@@ -226,7 +226,7 @@ void main() {
         final editResult = requester.invoke('$watchGroupPath/edit', {
           r"Logging Type": "Interval",
           r"Interval": interval,
-          r"Buffer Flush Time": 1
+          r"Buffer Flush Time": interval
         });
         final results = await editResult.toList();
 

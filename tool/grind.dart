@@ -19,7 +19,8 @@ Future<dynamic> main(List<String> args) => grind(args);
 
 Future<Directory> cloneGitRepository(String repositoryUrl,
     {String branchName: 'master', String directoryPrefix: ''}) async {
-  print('********* Cloning Git Repository $repositoryUrl ***********');
+  print(
+      '********* Cloning Git Repository $repositoryUrl @ branch : $branchName ***********');
   var cloneDirectory =
       await new Directory(projectPath).createTemp(directoryPrefix);
 
@@ -103,7 +104,8 @@ Future<Null> repackageEtsdb({String sdkBranchName: 'master'}) async {
 Future<File> zipRepackagedLink(
     Directory linkDumpDirectory, File outputFile) async {
   print('********* Zipping updated link ***********');
-  var process = await Process.start('zip', ['-r', outputFile.path, etsdbLinkName],
+  var process = await Process.start(
+      'zip', ['-r', outputFile.path, etsdbLinkName],
       workingDirectory: linkDumpDirectory.path);
 
   await printProcessOutput(process);

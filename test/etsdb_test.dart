@@ -242,7 +242,7 @@ void main() {
           var rawDate = DateTime.parse(update[0]);
           var difference = rawDate.difference(previousTime).inMilliseconds;
 
-          expect(difference, lessThan(interval * 1000 + interval * 0.15));
+          expect(difference, lessThan(interval * 1000 * 1.15));
 
           previousTime = rawDate;
         }

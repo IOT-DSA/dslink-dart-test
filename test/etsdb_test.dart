@@ -229,9 +229,7 @@ void main() {
         final getHistoryResult = requester.invoke('${watchPath()}/getHistory');
         final history = await getHistoryResult.toList();
 
-        var firstTime = DateTime.parse(history[1].updates.first[0]);
-
-        var previousTime = firstTime;
+        var previousTime = DateTime.parse(history[1].updates.first[0]);
         for (var update in history[1].updates.skip(1)) {
           var rawDate = DateTime.parse(update[0]);
           var difference = rawDate.difference(previousTime).inMilliseconds;

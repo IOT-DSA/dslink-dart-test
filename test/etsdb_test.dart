@@ -218,6 +218,30 @@ void main() {
                 loggingDurationInSeconds, loggingDurationInSeconds + 1));
       }, skip: false);
 
+      test(
+          "@@getHistory should return multiple different values when logging "
+          "in INTERVAL and the watched value change between polls", () async {
+        final loggingDurationInSeconds = 5;
+        final intervalInSeconds = 1;
+        await makeWatchGroupLogByInterval(
+            requester, watchGroupPath, intervalInSeconds);
+        await createWatch(dbPath, watchGroupName, watchedPath);
+
+        for (int i = 0; i < loggingDurationInSeconds; ++i) {
+          await requester.set(watchedPath, i);
+          await new Future.delayed(new Duration(seconds: intervalInSeconds));
+        }
+
+        var result = await getHistoryUpdates(watchPath());
+        String previousTimeStamp;
+        for (int i = 0; i < loggingDurationInSeconds; ++i) {
+          expect(result.updates[i][0], isNot(previousTimeStamp));
+          expect(result.updates[i][1], i);
+
+          previousTimeStamp = result.updates[i][0];
+        }
+      }, skip: false);
+
       test("@@getHistory interval values should be within threshold", () async {
         var interval = 1;
         await createWatch(dbPath, watchGroupName, watchedPath);

@@ -19,7 +19,7 @@ class Config {
   static const String downstreamName = 'downstream';
   static const Map<String, Map<String, dynamic>> upstream = null;
 
-  static const String logLevel = 'finest';
+  static const String logLevel = 'info';
   static const bool quarantine = false;
   static const bool allowAllLinks = true;
 }

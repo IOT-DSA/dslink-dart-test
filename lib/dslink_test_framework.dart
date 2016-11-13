@@ -53,8 +53,7 @@ class TestResponder {
 
   Future<Null> startResponder() async {
     _linkProvider = new LinkProvider(
-        ['-b', 'http://localhost:${Config.httpPort}/conn'],
-        'TestResponder',
+        ['-b', 'http://localhost:${Config.httpPort}/conn'], 'TestResponder',
         isRequester: false,
         isResponder: true,
         profiles: {
@@ -74,10 +73,9 @@ class TestRequester {
   LinkProvider _linkProvider;
 
   Future<Requester> start() async {
-    _linkProvider = new LinkProvider([
-      '-b',
-      'http://localhost:${Config.httpPort}/conn'
-    ], 'TestRequester', isRequester: true, isResponder: false);
+    _linkProvider = new LinkProvider(
+        ['-b', 'http://localhost:${Config.httpPort}/conn'], 'TestRequester',
+        isRequester: true, isResponder: false);
 
     await _linkProvider.connect();
 

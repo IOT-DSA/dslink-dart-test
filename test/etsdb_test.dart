@@ -23,12 +23,12 @@ void main() {
   final String linkName = 'dslink-java-etsdb-0.16.0-SNAPSHOT';
   final String distZipPath = "${getLinksDirectory().path}/$linkName.zip";
   final String linkPath = '/downstream/etsdb';
-  final String dbPath = 'dbPath';
   final String watchGroupName = 'myWatchGroup';
-  final String watchGroupPath = '$linkPath/$dbPath/$watchGroupName';
-  String watchedPath = '';
+  String dbPath = 'willBeInitializedInSetup';
+  String watchedPath = 'willBeInitializedInSetup';
+  String watchGroupPath() => '$linkPath/$dbPath/$watchGroupName';
   String watchPath() =>
-      '$watchGroupPath/${NodeNamer.createName('$watchedPath')}';
+      '${watchGroupPath()}/${NodeNamer.createName('$watchedPath')}';
   final String typeAttribute = '\$type';
 
   String fullDbDirectoryPath() => '${temporaryDirectory.path}/$dbPath';
@@ -75,6 +75,7 @@ void main() {
     await startRequester();
     await startLink();
 
+    dbPath = randomString;
     watchedPath = '/data/$randomString';
   });
 
@@ -151,7 +152,7 @@ void main() {
     test('create watch group should create child watchgroup node', () async {
       await createWatchGroup(watchGroupName);
 
-      final nodeValue = await requester.getRemoteNode(watchGroupPath);
+      final nodeValue = await requester.getRemoteNode(watchGroupPath());
 
       expect(nodeValue.configs[r'$$wg'], isTrue);
     }, skip: false);
@@ -164,7 +165,7 @@ void main() {
       test('watches should be children of watch group', () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
 
-        final nodeValue = await requester.getRemoteNode(watchGroupPath);
+        final nodeValue = await requester.getRemoteNode(watchGroupPath());
 
         var encodedWatchPath = NodeNamer.createName(watchedPath);
         expect(nodeValue.children[encodedWatchPath], isNotNull);
@@ -194,7 +195,7 @@ void main() {
         var newValue = new Random.secure().nextInt(1000).toString();
         await requester.set(watchedPath, newValue);
 
-        await new Future.delayed(new Duration(milliseconds: 300));
+        await new Future.delayed(new Duration(milliseconds: 400));
         var updates = await getHistoryUpdates(watchPath());
 
         expect(updates.updates[0][1], newValue);
@@ -205,7 +206,7 @@ void main() {
         final intervalInSeconds = 1;
         await requester.set(watchedPath, "bar");
         await makeWatchGroupLogByInterval(
-            requester, watchGroupPath, intervalInSeconds);
+            requester, watchGroupPath(), intervalInSeconds);
         await createWatch(dbPath, watchGroupName, watchedPath);
 
         await new Future.delayed(
@@ -222,7 +223,8 @@ void main() {
         var interval = 1;
         await createWatch(dbPath, watchGroupName, watchedPath);
         await requester.set(watchedPath, "bar");
-        await makeWatchGroupLogByInterval(requester, watchGroupPath, interval);
+        await makeWatchGroupLogByInterval(
+            requester, watchGroupPath(), interval);
 
         await new Future.delayed(const Duration(seconds: 10));
 

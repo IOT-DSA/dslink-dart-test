@@ -92,20 +92,17 @@ class ScriptRoot {
           help: 'If specified, the script will not clone the Java SDK but '
               'rather use an already checked out version.')
           String pathToSdk}) async {
-    if (pathToSdk == null) {
-      final branchName = getBranchName();
-
-      await repackageEtsdb(sdkBranchName: branchName);
-    } else {}
+    await repackageEtsdbFromPath(sdkPath: pathToSdk);
 
     new PubApp.local('test').run([]);
   }
 
   @SubCommand(
-      help: 'Repackage dslink-java-etsdb with a given version of the Java SDK. '
+      help:
+          'Repackage dslink-java-etsdb with a given version of the Java SDK. Specifically a branch name is assumed.'
           'To do so, it will clone the GitHub repository.')
-  Future<Null> repackageEtsdb(
-      {@Option(help: 'Branch of the Java SDK (available on GitHub)')
+  Future<Null> repackageEtsdbFromGit(
+      {@Option(help: 'Branch of the Java SDK (available on GitHub)', defaultsTo: 'master')
           String sdkBranchName: 'master'}) async {
     print('********* Repackaging ETSDB ***********');
     final linkDirectory =
@@ -126,6 +123,31 @@ class ScriptRoot {
     await linkDirectory.delete(recursive: true);
     await linkDumpDirectory.delete(recursive: true);
     await sdkDirectory.delete(recursive: true);
+  }
+
+  @SubCommand(
+      help:
+          'Repackage dslink-java-etsdb with a given version of the Java SDK. The SDK located in a given path will be used to find the .jars to replace in etsdb.'
+          'To do so, it will clone the GitHub repository.')
+  Future<Null> repackageEtsdbFromPath(
+      {@Option(help: 'Branch of the Java SDK (available on GitHub)', defaultsTo: '../')
+          String sdkPath: '../'}) async {
+    print('********* Repackaging ETSDB ***********');
+    final linkDirectory =
+        await cloneGitRepository(etsdbRepositoryUrl, directoryPrefix: 'etsdb-');
+
+    await buildJavaLink(linkDirectory);
+
+    final linkDumpDirectory = await dumpDistZip(linkDirectory, etsdbLinkName);
+
+    final sdkDirectory = new Directory(sdkPath);
+
+    await replaceSdkJars(sdkDirectory, linkDumpDirectory);
+    await zipRepackagedLink(
+        linkDumpDirectory, new File('$projectPath/links/$etsdbLinkName.zip'));
+
+    await linkDirectory.delete(recursive: true);
+    await linkDumpDirectory.delete(recursive: true);
   }
 
   Future replaceSdkJars(Directory sdkDirectory, Directory linkDirectory) async {

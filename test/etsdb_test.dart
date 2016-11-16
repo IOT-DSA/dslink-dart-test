@@ -20,7 +20,7 @@ void main() {
     return new Directory(path);
   }
 
-  final String linkName = 'dslink-java-etsdb-0.16.0-SNAPSHOT';
+  final String linkName = 'dslink-java-etsdb-0.17.0-SNAPSHOT';
   final String distZipPath = "${getLinksDirectory().path}/$linkName.zip";
   final String linkPath = '/downstream/etsdb';
   final String watchGroupName = 'myWatchGroup';

@@ -226,7 +226,7 @@ void main() {
         final loggingDurationInSeconds = 5;
         final intervalInSeconds = 1;
         await makeWatchGroupLogByInterval(
-            requester, watchGroupPath, intervalInSeconds);
+            requester, watchGroupPath(), intervalInSeconds);
         await createWatch(dbPath, watchGroupName, watchedPath);
 
         for (int i = 0; i < loggingDurationInSeconds; ++i) {

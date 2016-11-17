@@ -98,8 +98,8 @@ class ScriptRoot {
   }
 
   @SubCommand(
-      help:
-          'Repackage dslink-java-etsdb with a given version of the Java SDK. Specifically a branch name is assumed.'
+      help: 'Repackage dslink-java-etsdb with a given version of the Java SDK. '
+          'Specifically a branch name is assumed.'
           'To do so, it will clone the GitHub repository.')
   Future<Null> repackageEtsdbFromGit(
       {@Option(help: 'Branch of the Java SDK (available on GitHub)', defaultsTo: 'master')
@@ -126,8 +126,9 @@ class ScriptRoot {
   }
 
   @SubCommand(
-      help:
-          'Repackage dslink-java-etsdb with a given version of the Java SDK. The SDK located in a given path will be used to find the .jars to replace in etsdb.'
+      help: 'Repackage dslink-java-etsdb with a given version of the Java SDK. '
+          'The SDK located in a given path will be used to find the .jars '
+          'to replace in etsdb.'
           'To do so, it will clone the GitHub repository.')
   Future<Null> repackageEtsdbFromPath(
       {@Option(help: 'Branch of the Java SDK (available on GitHub)', defaultsTo: '../')

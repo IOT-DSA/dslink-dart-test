@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:math';
 
 class Config {
   static InternetAddress get host => InternetAddress.ANY_IP_V4;
@@ -13,7 +14,7 @@ class Config {
   static const bool broadcast = false;
   static const String broadcastUrl = '?';
 
-  static const int httpPort = 8123;
+  static int httpPort = new Random.secure().nextInt(100) + 8010;
   static const int httpsPort = 8456;
 
   static const String downstreamName = 'downstream';

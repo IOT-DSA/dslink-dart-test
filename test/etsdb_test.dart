@@ -220,7 +220,8 @@ void main() {
 
       test(
           "@@getHistory should return multiple different values when logging "
-          "in INTERVAL and the watched value change between polls", () async {
+          "in INTERVAL while the watched value changes between polls",
+          () async {
         final loggingDurationInSeconds = 5;
         final intervalInSeconds = 1;
         await makeWatchGroupLogByInterval(

@@ -2,7 +2,6 @@ import 'dart:io';
 import 'dart:math';
 
 class Config {
-  static int _port;
   static InternetAddress get host => InternetAddress.ANY_IP_V4;
 
   static SecurityContext get securityContext => SecurityContext.defaultContext;
@@ -15,9 +14,10 @@ class Config {
   static const bool broadcast = false;
   static const String broadcastUrl = '?';
 
+  static int _port;
   static int httpPort =
-      _port != null ? _port : new Random.secure().nextInt(100) + 8010;
-  static const int httpsPort = 8456;
+      _port != null ? _port : _port = new Random.secure().nextInt(100) + 8010;
+  static int get httpsPort => httpPort + 5;
 
   static const String downstreamName = 'downstream';
   static const Map<String, Map<String, dynamic>> upstream = null;

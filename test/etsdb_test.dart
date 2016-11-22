@@ -50,19 +50,21 @@ void main() {
     etsdbProcess = await Process.start(
         'bin/dslink-java-etsdb', ['-b', testBroker.brokerAddress],
         workingDirectory: temporaryDirectory.path);
-    await new Future.delayed(const Duration(seconds: 2));
+    await new Future.delayed(const Duration(seconds: 1));
 
     printProcessOutputs(etsdbProcess);
   }
 
-  Future<Null> killLink() async {
+  Future<Null> killLink({bool clearFiles: true}) async {
     etsdbProcess.kill();
 
     await new Future.delayed(const Duration(seconds: 3));
-    await clearTestDirectory(temporaryDirectory);
 
-    final clearSysResult = requester.invoke('/sys/clearConns');
-    await clearSysResult.toList();
+    if (clearFiles) {
+      await clearTestDirectory(temporaryDirectory);
+
+      await requester.invoke('/sys/clearConns').toList();
+    }
   }
 
   Future<Null> killBroker() async {
@@ -119,7 +121,7 @@ void main() {
     final dbDirectory = new Directory(fullDbDirectoryPath());
     final directoryExists = await dbDirectory.exists();
     expect(directoryExists, isTrue);
-  }, skip: false);
+  }, skip: true);
 
   group('with database', () {
     setUp(() async {
@@ -147,7 +149,7 @@ void main() {
       await testRequester.setDataValue(pathWithDot, 14);
       update = await testRequester.getDataValue(pathWithDot);
       expect(update.value, 14);
-    }, skip: false);
+    }, skip: true);
 
     test('create watch group should create child watchgroup node', () async {
       await createWatchGroup(watchGroupName);
@@ -155,7 +157,7 @@ void main() {
       final nodeValue = await requester.getRemoteNode(watchGroupPath());
 
       expect(nodeValue.configs[r'$$wg'], isTrue);
-    }, skip: false);
+    }, skip: true);
 
     group('with watch group', () {
       setUp(() async {
@@ -169,6 +171,61 @@ void main() {
 
         var encodedWatchPath = NodeNamer.createName(watchedPath);
         expect(nodeValue.children[encodedWatchPath], isNotNull);
+      }, skip: true);
+
+      test('watch should have all actions added on creation', () async {
+        await createWatch(dbPath, watchGroupName, watchedPath);
+        await requester.set(watchedPath, 13);
+
+        final unsubPurgeNode =
+            await requester.getRemoteNode("${watchPath()}/unsubPurge");
+        final getHistoryNode =
+            await requester.getRemoteNode("${watchPath()}/getHistory");
+        final unsubNode =
+            await requester.getRemoteNode("${watchPath()}/unsubscribe");
+        final purgeNode = await requester.getRemoteNode("${watchPath()}/purge");
+        final overwriteHistory =
+            await requester.getRemoteNode("${watchPath()}/overwriteHistory");
+
+        expect(unsubPurgeNode.getConfig(r'$invokable'), 'config');
+        expect(getHistoryNode.getConfig(r'$invokable'), 'read');
+        expect(unsubNode.getConfig(r'$invokable'), 'config');
+        expect(purgeNode.getConfig(r'$invokable'), 'config');
+        expect(overwriteHistory.getConfig(r'$invokable'), 'config');
+      }, skip: false);
+
+      test('watch should have all actions added when link comes back up',
+          () async {
+        await createWatch(dbPath, watchGroupName, watchedPath);
+        await requester.set(watchedPath, 13);
+        await new Future.delayed(new Duration(
+            seconds: 4)); // Make sure the value is written to the db.
+
+        await killLink(clearFiles: false);
+        await requester.invoke('/sys/clearConns').toList();
+        await new Future.delayed(new Duration(seconds: 3));
+
+        etsdbProcess = await Process.start(
+            'bin/dslink-java-etsdb', ['-b', testBroker.brokerAddress],
+            workingDirectory: temporaryDirectory.path);
+        await new Future.delayed(const Duration(seconds: 5));
+        printProcessOutputs(etsdbProcess);
+
+        final unsubPurgeNode =
+            await requester.getRemoteNode("${watchPath()}/unsubPurge");
+        final getHistoryNode =
+            await requester.getRemoteNode("${watchPath()}/getHistory");
+        final unsubNode =
+            await requester.getRemoteNode("${watchPath()}/unsubscribe");
+        final purgeNode = await requester.getRemoteNode("${watchPath()}/purge");
+        final overwriteHistory =
+            await requester.getRemoteNode("${watchPath()}/overwriteHistory");
+
+        expect(unsubPurgeNode.getConfig(r'$invokable'), 'config');
+        expect(getHistoryNode.getConfig(r'$invokable'), 'read');
+        expect(unsubNode.getConfig(r'$invokable'), 'config');
+        expect(purgeNode.getConfig(r'$invokable'), 'config');
+        expect(overwriteHistory.getConfig(r'$invokable'), 'config');
       }, skip: false);
 
       test('@@getHistory should be added to the watched path', () async {
@@ -177,7 +234,7 @@ void main() {
         final nodeValue = await requester.getRemoteNode(watchedPath);
 
         expect(nodeValue.attributes['@@getHistory'], isNotNull);
-      }, skip: false);
+      }, skip: true);
 
       Future<RequesterInvokeUpdate> getHistoryUpdates(String watchPath) async {
         var getHistoryResult = requester.invoke('$watchPath/getHistory');
@@ -199,7 +256,7 @@ void main() {
         var updates = await getHistoryUpdates(watchPath());
 
         expect(updates.updates[0][1], newValue);
-      }, skip: false);
+      }, skip: true);
 
       test("@@getHistory should return multiple values as INTERVAL", () async {
         final loggingDurationInSeconds = 5;
@@ -217,7 +274,7 @@ void main() {
             result.updates.length,
             inInclusiveRange(
                 loggingDurationInSeconds, loggingDurationInSeconds + 1));
-      }, skip: false);
+      }, skip: true);
 
       test(
           "@@getHistory should return multiple different values when logging "
@@ -242,7 +299,7 @@ void main() {
 
           previousTimeStamp = result.updates[i][0];
         }
-      }, skip: false);
+      }, skip: true);
 
       test("@@getHistory interval values should be within threshold", () async {
         var interval = 1;
@@ -267,7 +324,7 @@ void main() {
         }
 
         assertThatNoErrorHappened(history);
-      }, skip: false);
+      }, skip: true);
 
       test('@@getHistory should be removed when delete and purge a watch',
           () async {
@@ -281,7 +338,7 @@ void main() {
         final nodeValue = await requester.getRemoteNode(watchedPath);
 
         expect(nodeValue.attributes['@@getHistory'], isNull);
-      }, skip: false);
+      }, skip: true);
 
       test('logging should stop on child watches when deleting a watch group',
           () async {
@@ -304,7 +361,7 @@ void main() {
         expect(historyUpdates.updates.length, 2);
         expect(historyUpdates.updates[0][1], initialValue);
         expect(historyUpdates.updates[1][1], initialValue + amountOfUpdates);
-      }, skip: false);
+      }, skip: true);
 
       test('watch data type is set to dynamic when not explicitly set',
           () async {
@@ -322,7 +379,7 @@ void main() {
 
         expect(watchedNodeType, 'dynamic');
         expect(watchNodeType, 'dynamic');
-      }, skip: false);
+      }, skip: true);
 
       test('watch data type is set to the type of the watched node', () async {
         final initialValue = 'hello';
@@ -339,7 +396,7 @@ void main() {
 
         expect(watchedNodeType, expectedType);
         expect(watchNodeType, expectedType);
-      }, skip: false);
+      }, skip: true);
 
       test(
           'watch data type is set to the type of the watched node even if '
@@ -358,7 +415,7 @@ void main() {
 
         expect(watchedNodeType, expectedType);
         expect(watchNodeType, expectedType);
-      }, skip: false);
+      }, skip: true);
 
       group('override type', () {
         test('changes watch type with a provided one', () async {
@@ -376,7 +433,7 @@ void main() {
 
           watchType = await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, typeOverride);
-        }, skip: false);
+        }, skip: true);
 
         test('keeps type the same when typename is null', () async {
           final initialValue = 12;
@@ -393,7 +450,7 @@ void main() {
 
           watchType = await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, initialType);
-        }, skip: false);
+        }, skip: true);
 
         test('keeps type the same when typeOverride is none', () async {
           final initialValue = 12;
@@ -410,7 +467,7 @@ void main() {
 
           watchType = await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, initialType);
-        }, skip: false);
+        }, skip: true);
       });
     });
   });

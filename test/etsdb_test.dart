@@ -286,9 +286,11 @@ void main() {
       test('logging should stop on child watches when deleting a watch group',
           () async {
         final initialValue = new Random.secure().nextInt(100);
-        final amountOfUpdates = 10;
+        final amountOfUpdates = 5;
 
         await requester.set(watchedPath, initialValue);
+        await new Future.delayed(new Duration(seconds: 1));
+
         await createWatch(dbPath, watchGroupName, watchedPath);
         var historyUpdates = await getHistoryUpdates(watchPath());
         expectHistoryUpdatesToOnlyContain(historyUpdates, initialValue);
@@ -299,6 +301,7 @@ void main() {
           await requester.set(watchedPath, initialValue + i);
         }
 
+        await new Future.delayed(new Duration(seconds: 1));
         await createWatch(dbPath, watchGroupName, watchedPath);
         historyUpdates = await getHistoryUpdates(watchPath());
         expect(historyUpdates.updates.length, 2);

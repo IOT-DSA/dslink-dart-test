@@ -50,19 +50,21 @@ void main() {
     etsdbProcess = await Process.start(
         'bin/dslink-java-etsdb', ['-b', testBroker.brokerAddress],
         workingDirectory: temporaryDirectory.path);
-    await new Future.delayed(const Duration(seconds: 2));
+    await new Future.delayed(const Duration(seconds: 1));
 
     printProcessOutputs(etsdbProcess);
   }
 
-  Future<Null> killLink() async {
+  Future<Null> killLink({bool clearFiles: true}) async {
     etsdbProcess.kill();
 
     await new Future.delayed(const Duration(seconds: 3));
-    await clearTestDirectory(temporaryDirectory);
 
-    final clearSysResult = requester.invoke('/sys/clearConns');
-    await clearSysResult.toList();
+    if (clearFiles) {
+      await clearTestDirectory(temporaryDirectory);
+
+      await requester.invoke('/sys/clearConns').toList();
+    }
   }
 
   Future<Null> killBroker() async {
@@ -198,6 +200,61 @@ void main() {
 
         var encodedWatchPath = NodeNamer.createName(watchedPath);
         expect(nodeValue.children[encodedWatchPath], isNotNull);
+      }, skip: false);
+
+      test('watch should have all actions added on creation', () async {
+        await createWatch(dbPath, watchGroupName, watchedPath);
+        await requester.set(watchedPath, 13);
+
+        final unsubPurgeNode =
+            await requester.getRemoteNode("${watchPath()}/unsubPurge");
+        final getHistoryNode =
+            await requester.getRemoteNode("${watchPath()}/getHistory");
+        final unsubNode =
+            await requester.getRemoteNode("${watchPath()}/unsubscribe");
+        final purgeNode = await requester.getRemoteNode("${watchPath()}/purge");
+        final overwriteHistory =
+            await requester.getRemoteNode("${watchPath()}/overwriteHistory");
+
+        expect(unsubPurgeNode.getConfig(r'$invokable'), 'config');
+        expect(getHistoryNode.getConfig(r'$invokable'), 'read');
+        expect(unsubNode.getConfig(r'$invokable'), 'config');
+        expect(purgeNode.getConfig(r'$invokable'), 'config');
+        expect(overwriteHistory.getConfig(r'$invokable'), 'config');
+      }, skip: false);
+
+      test('watch should have all actions added when link comes back up',
+          () async {
+        await createWatch(dbPath, watchGroupName, watchedPath);
+        await requester.set(watchedPath, 13);
+        await new Future.delayed(new Duration(
+            seconds: 4)); // Make sure the value is written to the db.
+
+        await killLink(clearFiles: false);
+        await requester.invoke('/sys/clearConns').toList();
+        await new Future.delayed(new Duration(seconds: 3));
+
+        etsdbProcess = await Process.start(
+            'bin/dslink-java-etsdb', ['-b', testBroker.brokerAddress],
+            workingDirectory: temporaryDirectory.path);
+        await new Future.delayed(const Duration(seconds: 5));
+        printProcessOutputs(etsdbProcess);
+
+        final unsubPurgeNode =
+            await requester.getRemoteNode("${watchPath()}/unsubPurge");
+        final getHistoryNode =
+            await requester.getRemoteNode("${watchPath()}/getHistory");
+        final unsubNode =
+            await requester.getRemoteNode("${watchPath()}/unsubscribe");
+        final purgeNode = await requester.getRemoteNode("${watchPath()}/purge");
+        final overwriteHistory =
+            await requester.getRemoteNode("${watchPath()}/overwriteHistory");
+
+        expect(unsubPurgeNode.getConfig(r'$invokable'), 'config');
+        expect(getHistoryNode.getConfig(r'$invokable'), 'read');
+        expect(unsubNode.getConfig(r'$invokable'), 'config');
+        expect(purgeNode.getConfig(r'$invokable'), 'config');
+        expect(overwriteHistory.getConfig(r'$invokable'), 'config');
       }, skip: false);
 
       test('@@getHistory should be added to the watched path', () async {

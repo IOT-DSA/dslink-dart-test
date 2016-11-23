@@ -2,10 +2,7 @@
 This project is meant to contain all the end-to-end tests for DSLinks we develop.
 
 ## Continuous Integration
-Right now, this project gives daily status about the tested links against the latest version of the SDK and the latest version
-of Dart Broker. No build integration is prevented by the result of these tests.
-
-If you have the required access, you can see the results [here](https://ci.dev.dglogik.com/viewType.html?buildTypeId=Dsa_DSLinksTests).
+As of right now, pull requests opened on https://github.com/IOT-DSA/sdk-dslink-java will use this project to run integrated tests. On each pull request, Travis will call the [repackaging script](https://github.com/IOT-DSA/dslink-dart-test/blob/master/tool/main.dart) to build a custom version of the tested links, containing the SDK version in the pull request.
 
 ## How to write new tests
 The tests are organized in the `test/` directory. Each tested DSLink contains its own `dslinkName_test.dart` file. The `base_test.dart`

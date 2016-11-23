@@ -162,6 +162,35 @@ void main() {
         await createWatchGroup(watchGroupName);
       });
 
+      test('addWatchPath should return a success code when watching a new path',
+          () async {
+        final invokeResult = requester.invoke(
+            '$linkPath/$dbPath/$watchGroupName/addWatchPath',
+            {'Path': watchedPath});
+
+        final results = await invokeResult.toList();
+
+        var update = results[0].updates[0];
+        expect(update[0], isTrue);
+        expect(update, hasLength(1));
+      }, skip: false);
+
+      test(
+          'addWatchPath should return an error when adding a path that is '
+          'already watched in a watch group', () async {
+        await createWatch(dbPath, watchGroupName, watchedPath);
+
+        final invokeResult = requester.invoke(
+            '$linkPath/$dbPath/$watchGroupName/addWatchPath',
+            {'Path': watchedPath});
+
+        final results = await invokeResult.toList();
+
+        var update = results[0].updates[0];
+        expect(update[0], isFalse);
+        expect(update[1], contains("Couldn't watch the path"));
+      }, skip: false);
+
       test('watches should be children of watch group', () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
 

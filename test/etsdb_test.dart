@@ -121,7 +121,7 @@ void main() {
     final dbDirectory = new Directory(fullDbDirectoryPath());
     final directoryExists = await dbDirectory.exists();
     expect(directoryExists, isTrue);
-  }, skip: true);
+  }, skip: false);
 
   group('with database', () {
     setUp(() async {
@@ -149,7 +149,7 @@ void main() {
       await testRequester.setDataValue(pathWithDot, 14);
       update = await testRequester.getDataValue(pathWithDot);
       expect(update.value, 14);
-    }, skip: true);
+    }, skip: false);
 
     test('create watch group should create child watchgroup node', () async {
       await createWatchGroup(watchGroupName);
@@ -157,7 +157,7 @@ void main() {
       final nodeValue = await requester.getRemoteNode(watchGroupPath());
 
       expect(nodeValue.configs[r'$$wg'], isTrue);
-    }, skip: true);
+    }, skip: false);
 
     group('with watch group', () {
       setUp(() async {
@@ -171,7 +171,7 @@ void main() {
 
         var encodedWatchPath = NodeNamer.createName(watchedPath);
         expect(nodeValue.children[encodedWatchPath], isNotNull);
-      }, skip: true);
+      }, skip: false);
 
       test('watch should have all actions added on creation', () async {
         await createWatch(dbPath, watchGroupName, watchedPath);
@@ -234,7 +234,7 @@ void main() {
         final nodeValue = await requester.getRemoteNode(watchedPath);
 
         expect(nodeValue.attributes['@@getHistory'], isNotNull);
-      }, skip: true);
+      }, skip: false);
 
       Future<RequesterInvokeUpdate> getHistoryUpdates(String watchPath) async {
         var getHistoryResult = requester.invoke('$watchPath/getHistory');
@@ -256,7 +256,7 @@ void main() {
         var updates = await getHistoryUpdates(watchPath());
 
         expect(updates.updates[0][1], newValue);
-      }, skip: true);
+      }, skip: false);
 
       test("@@getHistory should return multiple values as INTERVAL", () async {
         final loggingDurationInSeconds = 5;
@@ -274,7 +274,7 @@ void main() {
             result.updates.length,
             inInclusiveRange(
                 loggingDurationInSeconds, loggingDurationInSeconds + 1));
-      }, skip: true);
+      }, skip: false);
 
       test(
           "@@getHistory should return multiple different values when logging "
@@ -299,7 +299,7 @@ void main() {
 
           previousTimeStamp = result.updates[i][0];
         }
-      }, skip: true);
+      }, skip: false);
 
       test("@@getHistory interval values should be within threshold", () async {
         var interval = 1;
@@ -324,7 +324,7 @@ void main() {
         }
 
         assertThatNoErrorHappened(history);
-      }, skip: true);
+      }, skip: false);
 
       test('@@getHistory should be removed when delete and purge a watch',
           () async {
@@ -338,7 +338,7 @@ void main() {
         final nodeValue = await requester.getRemoteNode(watchedPath);
 
         expect(nodeValue.attributes['@@getHistory'], isNull);
-      }, skip: true);
+      }, skip: false);
 
       test('logging should stop on child watches when deleting a watch group',
           () async {
@@ -361,7 +361,7 @@ void main() {
         expect(historyUpdates.updates.length, 2);
         expect(historyUpdates.updates[0][1], initialValue);
         expect(historyUpdates.updates[1][1], initialValue + amountOfUpdates);
-      }, skip: true);
+      }, skip: false);
 
       test('watch data type is set to dynamic when not explicitly set',
           () async {
@@ -379,7 +379,7 @@ void main() {
 
         expect(watchedNodeType, 'dynamic');
         expect(watchNodeType, 'dynamic');
-      }, skip: true);
+      }, skip: false);
 
       test('watch data type is set to the type of the watched node', () async {
         final initialValue = 'hello';
@@ -396,7 +396,7 @@ void main() {
 
         expect(watchedNodeType, expectedType);
         expect(watchNodeType, expectedType);
-      }, skip: true);
+      }, skip: false);
 
       test(
           'watch data type is set to the type of the watched node even if '
@@ -415,7 +415,7 @@ void main() {
 
         expect(watchedNodeType, expectedType);
         expect(watchNodeType, expectedType);
-      }, skip: true);
+      }, skip: false);
 
       group('override type', () {
         test('changes watch type with a provided one', () async {
@@ -433,7 +433,7 @@ void main() {
 
           watchType = await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, typeOverride);
-        }, skip: true);
+        }, skip: false);
 
         test('keeps type the same when typename is null', () async {
           final initialValue = 12;
@@ -450,7 +450,7 @@ void main() {
 
           watchType = await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, initialType);
-        }, skip: true);
+        }, skip: false);
 
         test('keeps type the same when typeOverride is none', () async {
           final initialValue = 12;
@@ -467,7 +467,7 @@ void main() {
 
           watchType = await getNodeType(requester, watchPath(), typeAttribute);
           expect(watchType, initialType);
-        }, skip: true);
+        }, skip: false);
       });
     });
   });
